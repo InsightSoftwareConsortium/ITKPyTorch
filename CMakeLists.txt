@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.10.2)
 project(PyTorch)
+set(CMAKE_CXX_STANDARD 11)
 
 set(PyTorch_LIBRARIES PyTorch)
 

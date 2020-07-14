@@ -15,84 +15,69 @@
  *  limitations under the License.
  *
  *=========================================================================*/
+
 #ifndef itkPyTorchImageDataManager_hxx
 #define itkPyTorchImageDataManager_hxx
 
 #include "itkPyTorchImageDataManager.h"
-#include "itkOpenCLUtil.h"
+
+//#define VERBOSE
 
 namespace itk
 {
-template <typename ImageType>
+template< typename ImageType >
 void
-PyTorchImageDataManager<ImageType>::SetImagePointer(ImageType * img)
+PyTorchImageDataManager< ImageType >::SetImagePointer( typename ImageType::Pointer img )
 {
   m_Image = img;
-
-  using RegionType = typename ImageType::RegionType;
-  using IndexType = typename ImageType::IndexType;
-  using SizeType = typename ImageType::SizeType;
-
-  RegionType region = m_Image->GetBufferedRegion();
-  IndexType  index = region.GetIndex();
-  SizeType   size = region.GetSize();
-
-  for (unsigned int d = 0; d < ImageDimension; d++)
-  {
-    m_BufferedRegionIndex[d] = index[d];
-    m_BufferedRegionSize[d] = size[d];
-  }
-
-  m_GPUBufferedRegionIndex = PyTorchDataManager::New();
-  m_GPUBufferedRegionIndex->SetBufferSize(sizeof(int) * ImageDimension);
-  m_GPUBufferedRegionIndex->SetCPUBufferPointer(m_BufferedRegionIndex);
-  m_GPUBufferedRegionIndex->SetBufferFlag(CL_MEM_READ_ONLY);
-  m_GPUBufferedRegionIndex->Allocate();
-  m_GPUBufferedRegionIndex->SetGPUDirtyFlag(true);
-
-  m_GPUBufferedRegionSize = PyTorchDataManager::New();
-  m_GPUBufferedRegionSize->SetBufferSize(sizeof(int) * ImageDimension);
-  m_GPUBufferedRegionSize->SetCPUBufferPointer(m_BufferedRegionSize);
-  m_GPUBufferedRegionSize->SetBufferFlag(CL_MEM_READ_ONLY);
-  m_GPUBufferedRegionSize->Allocate();
-  m_GPUBufferedRegionSize->SetGPUDirtyFlag(true);
 }
 
-template <typename ImageType>
+
+//------------------------------------------------------------------------------
+template< typename ImageType >
 void
-PyTorchImageDataManager<ImageType>::MakeCPUBufferUpToDate()
+PyTorchImageDataManager< ImageType >::UpdateCPUBuffer()
 {
-  if (m_Image.IsNotNull())
+  if( this->m_CPUBufferLock )
+  {
+    return;
+  }
+
+  if( m_Image.IsNotNull() )
   {
     m_Mutex.lock();
 
-    ModifiedTimeType gpu_time = this->GetMTime();
-    TimeStamp        cpu_time_stamp = m_Image->GetTimeStamp();
-    ModifiedTimeType cpu_time = cpu_time_stamp.GetMTime();
+    unsigned long gpu_time       = this->GetMTime();
+    TimeStamp     cpu_time_stamp = m_Image->GetTimeStamp();
+    unsigned long cpu_time       = cpu_time_stamp.GetMTime();
 
     /* Why we check dirty flag and time stamp together?
-     * Because existing CPU image filters do not use pixel/buffer
-     * access function in PyTorchImage and therefore dirty flag is not
-     * correctly managed. Therefore, we check the time stamp of
-     * CPU and GPU data as well
-     */
-    if ((m_IsCPUBufferDirty || (gpu_time > cpu_time)) && m_GPUBuffer != nullptr && m_CPUBuffer != nullptr)
+    * Because existing CPU image filters do not use pixel/buffer
+    * access function in PyTorchImage and therefore dirty flag is not
+    * correctly managed. Therefore, we check the time stamp of
+    * CPU and GPU data as well
+    */
+    if( ( m_IsCPUBufferDirty ||( gpu_time > cpu_time ) ) && m_GPUBuffer != nullptr && m_CPUBuffer != nullptr )
     {
       cl_int errid;
-      itkDebugMacro(<< "GPU->CPU data copy");
-      errid = clEnqueueReadBuffer(m_ContextManager->GetCommandQueue(m_CommandQueueId),
-                                  m_GPUBuffer,
-                                  CL_TRUE,
-                                  0,
-                                  m_BufferSize,
-                                  m_CPUBuffer,
-                                  0,
-                                  nullptr,
-                                  nullptr);
-      OpenCLCheckError(errid, __FILE__, __LINE__, ITK_LOCATION);
+#if( defined( _WIN32 ) && defined( _DEBUG ) ) || !defined( NDEBUG )
+      std::cout << "clEnqueueReadBuffer GPU->CPU" << "..." << std::endl;
+#endif
+
+#ifdef OPENCL_PROFILING
+      cl_event clEvent = NULL;
+      errid = clEnqueueReadBuffer( m_Context->GetCommandQueue().GetQueueId(),
+        m_GPUBuffer, CL_TRUE, 0, m_BufferSize, m_CPUBuffer, 0, nullptr, &clEvent );
+#else
+      errid = clEnqueueReadBuffer( m_Context->GetCommandQueue().GetQueueId(),
+        m_GPUBuffer, CL_TRUE, 0, m_BufferSize, m_CPUBuffer, 0, 0, 0 );
+#endif
+
+      m_Context->ReportError( errid, __FILE__, __LINE__, ITK_LOCATION );
+      //m_ContextManager->OpenCLProfile( clEvent, "clEnqueueReadBuffer GPU->CPU" );
 
       m_Image->Modified();
-      this->SetTimeStamp(m_Image->GetTimeStamp());
+      this->SetTimeStamp( m_Image->GetTimeStamp() );
 
       m_IsCPUBufferDirty = false;
       m_IsGPUBufferDirty = false;
@@ -102,40 +87,50 @@ PyTorchImageDataManager<ImageType>::MakeCPUBufferUpToDate()
   }
 }
 
-template <typename ImageType>
+
+//------------------------------------------------------------------------------
+template< typename ImageType >
 void
-PyTorchImageDataManager<ImageType>::MakeGPUBufferUpToDate()
+PyTorchImageDataManager< ImageType >::UpdateGPUBuffer()
 {
-  if (m_Image.IsNotNull())
+  if( this->m_GPUBufferLock )
+  {
+    return;
+  }
+
+  if( m_Image.IsNotNull() )
   {
     m_Mutex.lock();
 
-    ModifiedTimeType gpu_time = this->GetMTime();
-    TimeStamp        cpu_time_stamp = m_Image->GetTimeStamp();
-    ModifiedTimeType cpu_time = m_Image->GetMTime();
+    unsigned long gpu_time       = this->GetMTime();
+    TimeStamp     cpu_time_stamp = m_Image->GetTimeStamp();
+    unsigned long cpu_time       = m_Image->GetMTime();
 
     /* Why we check dirty flag and time stamp together?
-     * Because existing CPU image filters do not use pixel/buffer
-     * access function in PyTorchImage and therefore dirty flag is not
-     * correctly managed. Therefore, we check the time stamp of
-     * CPU and GPU data as well
-     */
-    if ((m_IsGPUBufferDirty || (gpu_time < cpu_time)) && m_CPUBuffer != nullptr && m_GPUBuffer != nullptr)
+    * Because existing CPU image filters do not use pixel/buffer
+    * access function in PyTorchImage and therefore dirty flag is not
+    * correctly managed. Therefore, we check the time stamp of
+    * CPU and GPU data as well
+    */
+    if( ( m_IsGPUBufferDirty ||( gpu_time< cpu_time ) ) && m_CPUBuffer != nullptr && m_GPUBuffer != nullptr )
     {
       cl_int errid;
-      itkDebugMacro(<< "CPU->GPU data copy");
-      errid = clEnqueueWriteBuffer(m_ContextManager->GetCommandQueue(m_CommandQueueId),
-                                   m_GPUBuffer,
-                                   CL_TRUE,
-                                   0,
-                                   m_BufferSize,
-                                   m_CPUBuffer,
-                                   0,
-                                   nullptr,
-                                   nullptr);
-      OpenCLCheckError(errid, __FILE__, __LINE__, ITK_LOCATION);
+#if( defined( _WIN32 ) && defined( _DEBUG ) ) || !defined( NDEBUG )
+      std::cout << "clEnqueueWriteBuffer CPU->GPU" << "..." << std::endl;
+#endif
 
-      this->SetTimeStamp(cpu_time_stamp);
+#ifdef OPENCL_PROFILING
+      cl_event clEvent = NULL;
+      errid = clEnqueueWriteBuffer( m_Context->GetCommandQueue().GetQueueId(),
+        m_GPUBuffer, CL_TRUE, 0, m_BufferSize, m_CPUBuffer, 0, nullptr, &clEvent );
+#else
+      errid = clEnqueueWriteBuffer( m_Context->GetCommandQueue().GetQueueId(),
+        m_GPUBuffer, CL_TRUE, 0, m_BufferSize, m_CPUBuffer, 0, nullptr, nullptr );
+#endif
+      m_Context->ReportError( errid, __FILE__, __LINE__, ITK_LOCATION );
+      //m_ContextManager->OpenCLProfile( clEvent, "clEnqueueWriteBuffer CPU->GPU" );
+
+      this->SetTimeStamp( cpu_time_stamp );
 
       m_IsCPUBufferDirty = false;
       m_IsGPUBufferDirty = false;
@@ -144,6 +139,22 @@ PyTorchImageDataManager<ImageType>::MakeGPUBufferUpToDate()
     m_Mutex.unlock();
   }
 }
+
+
+//------------------------------------------------------------------------------
+template< typename ImageType >
+void
+PyTorchImageDataManager< ImageType >::Graft( const PyTorchImageDataManager * data )
+{
+  //std::cout << "GPU timestamp : " << this->GetMTime() << ", CPU timestamp : "
+  // << m_Image->GetMTime() << std::endl;
+
+  Superclass::Graft( data );
+
+  //std::cout << "GPU timestamp : " << this->GetMTime() << ", CPU timestamp : "
+  // << m_Image->GetMTime() << std::endl;
+}
+
 
 } // namespace itk
 

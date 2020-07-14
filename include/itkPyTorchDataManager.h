@@ -22,8 +22,7 @@
 #include "itkObject.h"
 #include "itkDataObject.h"
 #include "itkObjectFactory.h"
-#include "itkOpenCLUtil.h"
-#include "itkPyTorchContextManager.h"
+#include "itkOpenCLContext.h"
 #include <mutex>
 
 namespace itk
@@ -33,125 +32,109 @@ namespace itk
  *
  * This class serves as a base class for GPU data container for PyTorchImage class,
  * which is similar to ImageBase class for Image class. However, all the image-related
- * meta data will be already stored in image class (parent of PyTorchImage), therefore
+ * meta data will be already stored in image class( parent of PyTorchImage ), therefore
  * we did not name it PyTorchImageBase. Rather, this class is a GPU-specific data manager
  * that provides functionalities for CPU-GPU data synchronization and grafting GPU data.
  *
  * \ingroup ITKPyTorchCommon
  */
-class PyTorchDataManager : public Object // DataObject//
+class PyTorchDataManager : public Object   //DataObject//
 {
   /** allow PyTorchKernelManager to access GPU buffer pointer */
-  friend class PyTorchKernelManager;
+  // friend class OpenCLKernelManager;
 
 public:
-  ITK_DISALLOW_COPY_AND_ASSIGN(PyTorchDataManager);
+  ITK_DISALLOW_COPY_AND_ASSIGN( PyTorchDataManager );
 
   using Self = PyTorchDataManager;
   using Superclass = Object;
-  using Pointer = SmartPointer<Self>;
-  using ConstPointer = SmartPointer<const Self>;
+  using Pointer = SmartPointer< Self >;
+  using ConstPointer = SmartPointer< const Self >;
 
-  itkNewMacro(Self);
-  itkTypeMacro(PyTorchDataManager, Object);
+  /** Method for creation through the object factory. */
+  itkNewMacro( Self );
 
-  using MutexHolderType = std::lock_guard<std::mutex>;
+  /** Run-time type information( and related methods ). */
+  itkTypeMacro( PyTorchDataManager, Object );
+
+  using MutexHolderType = std::lock_guard< std::mutex >;
 
   /** total buffer size in bytes */
-  void
-  SetBufferSize(unsigned int num);
+  virtual void SetBufferSize( unsigned int num );
 
-  unsigned int
-  GetBufferSize() const
+  virtual unsigned int GetBufferSize() const
   {
     return m_BufferSize;
   }
 
-  void
-  SetBufferFlag(cl_mem_flags flags);
+  virtual void SetBufferFlag( cl_mem_flags flags );
 
-  void
-  SetCPUBufferPointer(void * ptr);
+  virtual void SetCPUBufferPointer( void * ptr );
 
-  void
-  SetCPUDirtyFlag(bool isDirty);
+  virtual void SetCPUDirtyFlag( bool isDirty );
 
-  void
-  SetGPUDirtyFlag(bool isDirty);
+  virtual void SetGPUDirtyFlag( bool isDirty );
 
   /** Make GPU up-to-date and mark CPU as dirty.
    * Call this function when you want to modify CPU data */
-  void
-  SetCPUBufferDirty();
+  virtual void SetCPUBufferDirty();
 
   /** Make CPU up-to-date and mark GPU as dirty.
    * Call this function when you want to modify GPU data */
-  void
-  SetGPUBufferDirty();
+  virtual void SetGPUBufferDirty();
 
-  bool
-  IsCPUBufferDirty() const
+  virtual bool IsCPUBufferDirty() const
   {
     return m_IsCPUBufferDirty;
   }
 
-  bool
-  IsGPUBufferDirty() const
+  virtual bool IsGPUBufferDirty() const
   {
     return m_IsGPUBufferDirty;
   }
 
   /** actual GPU->CPU memory copy takes place here */
-  virtual void
-  UpdateCPUBuffer();
+  virtual void UpdateCPUBuffer();
 
   /** actual CPU->GPU memory copy takes place here */
-  virtual void
-  UpdateGPUBuffer();
+  virtual void UpdateGPUBuffer();
 
-  void
-  Allocate();
+  virtual void Allocate();
 
-  void
-  SetCurrentCommandQueue(int queueid);
-
-  int
-  GetCurrentCommandQueueID() const;
-
-  /** Synchronize CPU and GPU buffers (using dirty flags) */
-  bool
-  Update();
+  /** Synchronize CPU and GPU buffers( using dirty flags ) */
+  virtual bool Update();
 
   /** Method for grafting the content of one PyTorchDataManager into another one */
-  virtual void
-  Graft(const PyTorchDataManager * data);
+  virtual void Graft( const PyTorchDataManager * data );
 
   /** Initialize PyTorchDataManager */
-  virtual void
-  Initialize();
+  virtual void Initialize();
 
   /** Get GPU buffer pointer */
-  cl_mem *
-  GetGPUBufferPointer();
+  virtual cl_mem * GetGPUBufferPointer();
 
-  /** Get GPU buffer pointer */
-  void *
-  GetCPUBufferPointer();
+  /** Get CPU buffer pointer */
+  virtual void * GetCPUBufferPointer();
+
+  /** Make CPU buffer locked to avoid extra update from ITK pipeline. */
+  virtual void SetCPUBufferLock( const bool v ) { this->m_CPUBufferLock = v; }
+  itkGetConstReferenceMacro( CPUBufferLock, bool );
+
+  /** Make GPU buffer locked to avoid extra update from ITK pipeline. */
+  virtual void SetGPUBufferLock( const bool v ) { this->m_GPUBufferLock = v; }
+  itkGetConstReferenceMacro( GPUBufferLock, bool );
 
 protected:
+
   PyTorchDataManager();
-  ~PyTorchDataManager() override;
-  void
-  PrintSelf(std::ostream & os, Indent indent) const override;
+  virtual ~PyTorchDataManager();
+  virtual void PrintSelf( std::ostream & os, Indent indent ) const override;
 
 protected:
-  /* NOTE: ivars are protected instead of private to improve performance access in child classes*/
 
   unsigned int m_BufferSize; // # of bytes
 
-  PyTorchContextManager * m_ContextManager;
-
-  int m_CommandQueueId;
+  OpenCLContext * m_Context;
 
   /** buffer type */
   cl_mem_flags m_MemFlags;
@@ -163,6 +146,10 @@ protected:
   /** checks if buffer needs to be updated */
   bool m_IsGPUBufferDirty;
   bool m_IsCPUBufferDirty;
+
+  /** extra safety flags */
+  bool m_CPUBufferLock;
+  bool m_GPUBufferLock;
 
   /** Mutex lock to prevent r/w hazard for multithreaded code */
   std::mutex m_Mutex;

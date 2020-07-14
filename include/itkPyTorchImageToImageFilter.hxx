@@ -2,7 +2,7 @@
  *
  *  Copyright NumFOCUS
  *
- *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  Licensed under the Apache License, Version 2.0( the "License" );
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
  *
@@ -26,37 +26,37 @@
 namespace itk
 {
 
-template <typename TInputImage, typename TOutputImage>
-PyTorchImageToImageFilter<TInputImage, TOutputImage>
+template< typename TInputImage, typename TOutputImage >
+PyTorchImageToImageFilter< TInputImage, TOutputImage >
 ::PyTorchImageToImageFilter()
 {}
 
 
-template <typename TInputImage, typename TOutputImage>
+template< typename TInputImage, typename TOutputImage >
 void
-PyTorchImageToImageFilter<TInputImage, TOutputImage>
-::PrintSelf(std::ostream & os, Indent indent) const
+PyTorchImageToImageFilter< TInputImage, TOutputImage >
+::PrintSelf( std::ostream & os, Indent indent ) const
 {
-  Superclass::PrintSelf(os, indent);
+  Superclass::PrintSelf( os, indent );
 }
 
 
-template <typename TInputImage, typename TOutputImage>
+template< typename TInputImage, typename TOutputImage >
 void
-PyTorchImageToImageFilter<TInputImage, TOutputImage>
-::DynamicThreadedGenerateData(const OutputRegionType & outputRegion)
+PyTorchImageToImageFilter< TInputImage, TOutputImage >
+::DynamicThreadedGenerateData( const OutputRegionType & outputRegion )
 {
   OutputImageType *      output = this->GetOutput();
   const InputImageType * input = this->GetInput();
   using InputRegionType = typename InputImageType::RegionType;
-  InputRegionType inputRegion = InputRegionType(outputRegion.GetSize());
+  InputRegionType inputRegion = InputRegionType( outputRegion.GetSize() );
 
-  itk::ImageRegionConstIterator<InputImageType> in(input, inputRegion);
-  itk::ImageRegionIterator<OutputImageType>     out(output, outputRegion);
+  itk::ImageRegionConstIterator< InputImageType > in( input, inputRegion );
+  itk::ImageRegionIterator< OutputImageType >     out( output, outputRegion );
 
-  for (in.GoToBegin(), out.GoToBegin(); !in.IsAtEnd() && !out.IsAtEnd(); ++in, ++out)
+  for( in.GoToBegin(), out.GoToBegin(); !in.IsAtEnd() && !out.IsAtEnd(); ++in, ++out )
   {
-    out.Set(in.Get());
+    out.Set( in.Get() );
   }
 }
 

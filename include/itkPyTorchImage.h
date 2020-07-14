@@ -34,10 +34,10 @@ namespace itk
  * can be used with non-GPU itk filters as well. Memory transfer
  * between CPU and GPU is done automatically and implicitly.
  *
- * \ingroup ITKPYTORCHCommon
+ * \ingroup ITKPyTorchCommon
  */
 template< typename TPixel, unsigned int VImageDimension = 2 >
-class ITK_TEMPLATE_EXPORT PyTorchImage : public Image< TPixel, VImageDimension >
+class PyTorchImage : public Image< TPixel, VImageDimension >
 {
 public:
   ITK_DISALLOW_COPY_AND_ASSIGN( PyTorchImage );
@@ -74,227 +74,157 @@ public:
   using NeighborhoodAccessorFunctorType = NeighborhoodAccessorFunctor< Self >;
   // NeighborhoodAccessorFunctorType;
 
-  //
-  // Allocate CPU and GPU memory space
-  //
-  void
-  Allocate( bool initialize = false ) override;
+  /** Allocate CPU and GPU memory space */
+  virtual void Allocate( bool initialize = false ) override;
 
-  void
-  Initialize() override;
+  virtual void AllocateGPU() override;
 
-  void
-  FillBuffer( const TPixel & value );
+  virtual void Initialize() override;
 
-  void
-  SetPixel( const IndexType & index, const TPixel & value );
+  virtual void FillBuffer( const TPixel & value ) override;
 
-  const TPixel &
-  GetPixel( const IndexType & index ) const;
+  virtual void SetPixel( const IndexType & index, const TPixel & value ) override;
 
-  TPixel &
-  GetPixel( const IndexType & index );
+  virtual const TPixel &GetPixel( const IndexType & index ) const override;
 
-  const TPixel & operator[]( const IndexType & index ) const;
+  virtual TPixel &GetPixel( const IndexType & index ) override;
 
-  TPixel & operator[]( const IndexType & index );
+  virtual const TPixel &operator[]( const IndexType & index ) const override;
+
+  virtual TPixel &operator[]( const IndexType & index ) override;
 
   /** Explicit synchronize CPU/GPU buffers */
-  void
-  UpdateBuffers();
+  virtual void UpdateBuffers() override;
 
-  //
-  // Get CPU buffer pointer
-  //
-  TPixel *
-  GetBufferPointer() override;
+  /** Explicit synchronize CPU/GPU buffers */
+  virtual void UpdateCPUBuffer() override;
 
-  const TPixel *
-  GetBufferPointer() const override;
+  virtual void UpdateGPUBuffer() override;
+
+  /** Get CPU buffer pointer */
+  virtual TPixel *GetBufferPointer() override;
+
+  virtual const TPixel * GetBufferPointer() const override;
 
   /** Return the Pixel Accessor object */
-  AccessorType
-  GetPixelAccessor()
+  virtual AccessorType GetPixelAccessor() override
   {
     m_DataManager->SetGPUBufferDirty();
     return Superclass::GetPixelAccessor();
   }
+
 
   /** Return the Pixel Accesor object */
-  const AccessorType
-  GetPixelAccessor() const
+  virtual const AccessorType GetPixelAccessor() const override
   {
     m_DataManager->UpdateCPUBuffer();
     return Superclass::GetPixelAccessor();
   }
 
+
   /** Return the NeighborhoodAccessor functor */
-  NeighborhoodAccessorFunctorType
-  GetNeighborhoodAccessor()
+  virtual NeighborhoodAccessorFunctorType GetNeighborhoodAccessor() override
   {
     m_DataManager->SetGPUBufferDirty();
-    // return Superclass::GetNeighborhoodAccessor();
     return NeighborhoodAccessorFunctorType();
   }
+
 
   /** Return the NeighborhoodAccessor functor */
-  const NeighborhoodAccessorFunctorType
-  GetNeighborhoodAccessor() const
+  virtual const NeighborhoodAccessorFunctorType GetNeighborhoodAccessor() const override
   {
     m_DataManager->UpdateCPUBuffer();
-    // return Superclass::GetNeighborhoodAccessor();
     return NeighborhoodAccessorFunctorType();
   }
 
-  void
-  SetPixelContainer( PixelContainer * container );
+
+  virtual void SetPixelContainer( PixelContainer * container ) override;
 
   /** Return a pointer to the container. */
-  PixelContainer *
-  GetPixelContainer()
+  virtual PixelContainer *GetPixelContainer() override
   {
     m_DataManager->SetGPUBufferDirty();
     return Superclass::GetPixelContainer();
   }
 
-  const PixelContainer *
-  GetPixelContainer() const
+
+  virtual const PixelContainer * GetPixelContainer() const override
   {
     m_DataManager->UpdateCPUBuffer();
     return Superclass::GetPixelContainer();
   }
 
-  void
-  SetCurrentCommandQueue( int queueid )
+
+  virtual void SetCurrentCommandQueue( int queueid ) override
   {
     m_DataManager->SetCurrentCommandQueue( queueid );
   }
 
-  int
-  GetCurrentCommandQueueID()
+
+  virtual int GetCurrentCommandQueueId() override
   {
-    return m_DataManager->GetCurrentCommandQueueID();
+    return m_DataManager->GetCurrentCommandQueueId();
   }
 
-  itkGetModifiableObjectMacro( DataManager, PyTorchImageDataManager< PyTorchImage > );
-  PyTorchDataManager *
-  GetPyTorchDataManager();
 
-  /* Override DataHasBeenGenerated() in DataObject class.
+  // Returns base class?!!!
+  virtual PyTorchDataManager::Pointer GetPyTorchDataManager() const override;
+
+  /** Override DataHasBeenGenerated() in DataObject class.
    * We need this because CPU time stamp is always bigger
    * than GPU's. That is because Modified() is called at
    * the end of each filter in the pipeline so although we
    * increment GPU's time stamp in GPUGenerateData() the
    * CPU's time stamp will be increased after that.
    */
-  void
-  DataHasBeenGenerated() override
+  virtual void DataHasBeenGenerated() override
   {
     Superclass::DataHasBeenGenerated();
+
     if( m_DataManager->IsCPUBufferDirty() )
-      {
+    {
       m_DataManager->Modified();
-      }
+    }
+
   }
 
+
   /** Graft the data and information from one PyTorchImage to another. */
-  virtual void
-  Graft( const Self * data );
+  virtual void Graft( const DataObject * data ) override;
+
+  virtual void GraftITKImage( const DataObject * data ) override;
+
+  /** Whenever the image has been modified, set the GPU Buffer to dirty */
+  virtual void Modified() const;
+
+  /** Get matrices intended to help with the conversion of Index coordinates
+   *  to PhysicalPoint coordinates */
+  itkGetConstReferenceMacro( IndexToPhysicalPoint, DirectionType );
+  itkGetConstReferenceMacro( PhysicalPointToIndex, DirectionType );
 
 protected:
-  void
-  Graft( const DataObject * data ) override;
+
   PyTorchImage();
-  ~PyTorchImage() override;
-  using Superclass::Graft;
+  virtual ~PyTorchImage() {}
+
+  virtual void PrintSelf( std::ostream & os, Indent indent ) const override;
 
 private:
+  bool m_Graft;
+
   typename PyTorchImageDataManager< PyTorchImage >::Pointer m_DataManager;
 };
 
-class ITK_TEMPLATE_EXPORT PyTorchImageFactory : public itk::ObjectFactoryBase
-{
-public:
-  ITK_DISALLOW_COPY_AND_ASSIGN( PyTorchImageFactory );
-
-  using Self = PyTorchImageFactory;
-  using Superclass = itk::ObjectFactoryBase;
-  using Pointer = itk::SmartPointer< Self >;
-  using ConstPointer = itk::SmartPointer< const Self >;
-
-  /** Class methods used to interface with the registered factories. */
-  const char *
-  GetITKSourceVersion() const override
-  {
-    return ITK_SOURCE_VERSION;
-  }
-  const char *
-  GetDescription() const override
-  {
-    return "A Factory for PyTorchImage";
-  }
-
-  /** Method for class instantiation. */
-  itkFactorylessNewMacro( Self );
-
-  /** Run-time type information (and related methods). */
-  itkTypeMacro( PyTorchImageFactory, itk::ObjectFactoryBase );
-
-  /** Register one factory of this type  */
-  static void
-  RegisterOneFactory()
-  {
-    PyTorchImageFactory::Pointer factory = PyTorchImageFactory::New();
-
-    itk::ObjectFactoryBase::RegisterFactory( factory );
-  }
-
-private:
-#define OverrideImageTypeMacro( pt, dm )                                                                               \
-  this->RegisterOverride( typeid( itk::Image< pt, dm > ).name(),                                                       \
-                          typeid( itk::PyTorchImage< pt, dm > ).name(),                                                \
-                          "GPU Image Override",                                                                        \
-                          true,                                                                                        \
-                          itk::CreateObjectFunction< PyTorchImage< pt, dm > >::New() )
-
-  PyTorchImageFactory()
-  {
-    if( IsGPUAvailable() )
-      {
-      // 1/2/3D
-      OverrideImageTypeMacro( unsigned char, 1 );
-      OverrideImageTypeMacro( signed char, 1 );
-      OverrideImageTypeMacro( int, 1 );
-      OverrideImageTypeMacro( unsigned int, 1 );
-      OverrideImageTypeMacro( float, 1 );
-      OverrideImageTypeMacro( double, 1 );
-
-      OverrideImageTypeMacro( unsigned char, 2 );
-      OverrideImageTypeMacro( signed char, 2 );
-      OverrideImageTypeMacro( int, 2 );
-      OverrideImageTypeMacro( unsigned int, 2 );
-      OverrideImageTypeMacro( float, 2 );
-      OverrideImageTypeMacro( double, 2 );
-
-      OverrideImageTypeMacro( unsigned char, 3 );
-      OverrideImageTypeMacro( signed char, 3 );
-      OverrideImageTypeMacro( int, 3 );
-      OverrideImageTypeMacro( unsigned int, 3 );
-      OverrideImageTypeMacro( float, 3 );
-      OverrideImageTypeMacro( double, 3 );
-      }
-  }
-};
-
+//------------------------------------------------------------------------------
 template< typename T >
-class ITK_TEMPLATE_EXPORT PyTorchTraits
+class PyTorchTraits
 {
 public:
   using Type = T;
 };
 
 template< typename TPixelType, unsigned int NDimension >
-class ITK_TEMPLATE_EXPORT PyTorchTraits< Image< TPixelType, NDimension > >
+class PyTorchTraits< Image< TPixelType, NDimension > >
 {
 public:
   using Type = PyTorchImage< TPixelType, NDimension >;
@@ -303,7 +233,7 @@ public:
 } // end namespace itk
 
 #ifndef ITK_MANUAL_INSTANTIATION
-#  include "itkPyTorchImage.hxx"
+#include "itkPyTorchImage.hxx"
 #endif
 
 #endif

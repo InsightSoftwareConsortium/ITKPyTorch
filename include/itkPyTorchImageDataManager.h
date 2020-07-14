@@ -23,81 +23,67 @@
 #include <itkTimeStamp.h>
 #include <itkLightObject.h>
 #include <itkObjectFactory.h>
-#include "itkOpenCLUtil.h"
+#include "itkPyTorchImage.h"
 #include "itkPyTorchDataManager.h"
-#include "itkPyTorchContextManager.h"
-#include <mutex>
 
 namespace itk
 {
-template <typename TPixel, unsigned int NDimension>
-class PyTorchImage;
-
 /**
- * \class PyTorchImageDataManager
+ * \class PyTorchImage Data Management
  *
  * DataManager for PyTorchImage. This class will take care of data synchronization
  * between CPU Image and GPU Image.
  *
- * \ingroup ITKPYTORCHCommon
+ * \ingroup ITKPyTorchCommon
  */
-template <typename ImageType>
-class ITK_TEMPLATE_EXPORT PyTorchImageDataManager : public PyTorchDataManager
+template< typename TPixel, unsigned int NDimension >
+class PyTorchImage;
+
+template< typename ImageType >
+class PyTorchImageDataManager : public PyTorchDataManager
 {
   // allow PyTorchKernelManager to access GPU buffer pointer
-  friend class PyTorchKernelManager;
-  friend class PyTorchImage<typename ImageType::PixelType, ImageType::ImageDimension>;
+  friend class OpenCLKernelManager;
+  friend class PyTorchImage< typename ImageType::PixelType, ImageType::ImageDimension >;
 
 public:
-  ITK_DISALLOW_COPY_AND_ASSIGN(PyTorchImageDataManager);
 
   using Self = PyTorchImageDataManager;
   using Superclass = PyTorchDataManager;
-  using Pointer = SmartPointer<Self>;
-  using ConstPointer = SmartPointer<const Self>;
+  using Pointer = SmartPointer< Self >;
+  using ConstPointer = SmartPointer< const Self >;
 
-  itkNewMacro(Self);
-  itkTypeMacro(PyTorchImageDataManager, PyTorchDataManager);
+  itkNewMacro( Self );
+  itkTypeMacro( PyTorchImageDataManager, PyTorchDataManager );
 
-  static constexpr unsigned int ImageDimension = ImageType::ImageDimension;
-
-  itkGetModifiableObjectMacro(GPUBufferedRegionIndex, PyTorchDataManager);
-  itkGetModifiableObjectMacro(GPUBufferedRegionSize, PyTorchDataManager);
-
-  void
-  SetImagePointer(ImageType * img);
-
-  ImageType *
-  GetImagePointer()
-  {
-    return this->m_Image.GetPointer();
-  }
+  virtual void SetImagePointer( typename ImageType::Pointer img ) override;
 
   /** actual GPU->CPU memory copy takes place here */
-  virtual void
-  MakeCPUBufferUpToDate();
+  virtual void UpdateCPUBuffer() override;
 
   /** actual CPU->GPU memory copy takes place here */
-  virtual void
-  MakeGPUBufferUpToDate();
+  virtual void UpdateGPUBuffer() override;
+
+  /** Grafting GPU Image Data */
+  virtual void Graft( const PyTorchImageDataManager * data ) override;
 
 protected:
-  PyTorchImageDataManager() = default;
-  ~PyTorchImageDataManager() override = default;
+
+  PyTorchImageDataManager() { m_Image = nullptr; }
+  virtual ~PyTorchImageDataManager() {}
 
 private:
-  WeakPointer<ImageType> m_Image; // WeakPointer has to be used here
-                                  // to avoid SmartPointer loop
-  int                              m_BufferedRegionIndex[ImageType::ImageDimension];
-  int                              m_BufferedRegionSize[ImageType::ImageDimension];
-  typename PyTorchDataManager::Pointer m_GPUBufferedRegionIndex;
-  typename PyTorchDataManager::Pointer m_GPUBufferedRegionSize;
+
+  PyTorchImageDataManager( const Self & );   // purposely not implemented
+  Self &operator=( const Self & );        // purposely not implemented
+
+  typename ImageType::Pointer m_Image;
 };
 
 } // namespace itk
 
 #ifndef ITK_MANUAL_INSTANTIATION
-#  include "itkPyTorchImageDataManager.hxx"
+#include "itkPyTorchImageDataManager.hxx"
 #endif
 
 #endif
