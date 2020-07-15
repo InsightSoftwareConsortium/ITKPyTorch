@@ -26,18 +26,18 @@
 
 namespace itk
 {
-template< typename ImageType >
+template< typename TImage >
 void
-PyTorchImageDataManager< ImageType >::SetImagePointer( typename ImageType::Pointer img )
+PyTorchImageDataManager< TImage >::SetImagePointer( typename ImageType::Pointer img )
 {
   m_Image = img;
 }
 
 
 //------------------------------------------------------------------------------
-template< typename ImageType >
+template< typename TImage >
 void
-PyTorchImageDataManager< ImageType >::UpdateCPUBuffer()
+PyTorchImageDataManager< TImage >::UpdateCPUBuffer()
 {
   if( this->m_CPUBufferLock )
   {
@@ -86,9 +86,9 @@ PyTorchImageDataManager< ImageType >::UpdateCPUBuffer()
 
 
 //------------------------------------------------------------------------------
-template< typename ImageType >
+template< typename TImage >
 void
-PyTorchImageDataManager< ImageType >::UpdateGPUBuffer()
+PyTorchImageDataManager< TImage >::UpdateGPUBuffer()
 {
   if( this->m_GPUBufferLock )
   {
@@ -134,9 +134,9 @@ PyTorchImageDataManager< ImageType >::UpdateGPUBuffer()
 
 
 //------------------------------------------------------------------------------
-template< typename ImageType >
+template< typename TImage >
 void
-PyTorchImageDataManager< ImageType >::Graft( const PyTorchImageDataManager *data )
+PyTorchImageDataManager< TImage >::Graft( const PyTorchImageDataManager *data )
 {
   // std::cout << "GPU timestamp : " << this->GetMTime() << ", CPU timestamp : " << m_Image->GetMTime() << std::endl;
 

@@ -39,18 +39,20 @@ namespace itk
 template< typename TPixel, unsigned int NDimension >
 class PyTorchImage;
 
-template< typename ImageType >
+template< typename TImage >
 class PyTorchImageDataManager : public PyTorchDataManager
 {
-  // allow PyTorchKernelManager to access GPU buffer pointer
-  friend class PyTorchImage< typename ImageType::PixelType, ImageType::ImageDimension >;
-
 public:
 
   using Self = PyTorchImageDataManager;
   using Superclass = PyTorchDataManager;
   using Pointer = SmartPointer< Self >;
   using ConstPointer = SmartPointer< const Self >;
+  using ImageType = TImage;
+  using PixelType = typename ImageType::PixelType;
+
+  // allow PyTorchKernelManager to access GPU buffer pointer
+  friend class PyTorchImage< typename ImageType::PixelType, ImageType::ImageDimension >;
 
   itkNewMacro( Self );
   itkTypeMacro( PyTorchImageDataManager, PyTorchDataManager );

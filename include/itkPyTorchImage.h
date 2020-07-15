@@ -62,17 +62,75 @@ public:
   using SpacingType = typename Superclass::SpacingType;
   using PixelContainer = typename Superclass::PixelContainer;
   using SizeType = typename Superclass::SizeType;
+  using SizeValueType = typename SizeType::SizeValueType;
   using IndexType = typename Superclass::IndexType;
   using OffsetType = typename Superclass::OffsetType;
   using RegionType = typename Superclass::RegionType;
   using PixelContainerPointer = typename PixelContainer::Pointer;
   using PixelContainerConstPointer = typename PixelContainer::ConstPointer;
+
   using AccessorType = typename Superclass::AccessorType;
-
   using AccessorFunctorType = DefaultPixelAccessorFunctor< Self >;
-
   using NeighborhoodAccessorFunctorType = NeighborhoodAccessorFunctor< Self >;
   // NeighborhoodAccessorFunctorType;
+
+  // For the default case that the number of vector components is not determined at compile time:
+  template< typename TPixelType, typename = void >
+  struct PixelHelper
+    {
+    using PixelType = TPixelType;
+    using ValueType = typename PixelType::ValueType;
+    static constexpr SizeValueType NumberOfComponents = -1;
+    static PixelType pixelInstance( unsigned numberOfComponents ) { return PixelType {numberOfComponents}; }
+    };
+  // For the case that the number of colors is implicitly set to 1 at compile time:
+  template< typename TPixelType >
+  struct PixelHelper< TPixelType, typename std::enable_if< std::is_arithmetic< TPixelType >::value >::type >
+    {
+    using PixelType = TPixelType;
+    using ValueType = PixelType;
+    static constexpr SizeValueType NumberOfComponents = 1;
+    static PixelType pixelInstance( unsigned numberOfComponents ) { return PixelType {}; }
+    };
+  // For the case that the pixel type is RGBPixel:
+  template< typename TScalar>
+  struct PixelHelper< RGBPixel< TScalar >, void >
+    {
+    using PixelType = RGBPixel< TScalar >;
+    using ValueType = typename PixelType::ValueType;
+    static constexpr SizeValueType NumberOfComponents = 3;
+    static PixelType pixelInstance( unsigned numberOfComponents ) { return PixelType {}; }
+    };
+  // For the case that the pixel type is RGBAPixel:
+  template< typename TScalar>
+  struct PixelHelper< RGBAPixel< TScalar >, void >
+    {
+    using PixelType = RGBAPixel< TScalar >;
+    using ValueType = typename PixelType::ValueType;
+    static constexpr SizeValueType NumberOfComponents = 4;
+    static PixelType pixelInstance( unsigned numberOfComponents ) { return PixelType {}; }
+    };
+  // For the cases that the pixel type is Vector or CovariantVector:
+  template< typename TScalar, unsigned int NVectorComponent >
+  struct PixelHelper< Vector< TScalar, NVectorComponent >, void >
+    {
+    using PixelType = Vector< TScalar, NVectorComponent >;
+    using ValueType = typename PixelType::ValueType;
+    static constexpr SizeValueType NumberOfComponents = NVectorComponent;
+    static PixelType pixelInstance( unsigned numberOfComponents ) { return PixelType {}; }
+    };
+  template< typename TScalar, unsigned int NVectorComponent >
+  struct PixelHelper< CovariantVector< TScalar, NVectorComponent >, void >
+    {
+    using PixelType = CovariantVector< TScalar, NVectorComponent >;
+    using ValueType = typename PixelType::ValueType;
+    static constexpr SizeValueType NumberOfComponents = NVectorComponent;
+    static PixelType pixelInstance( unsigned numberOfComponents ) { return PixelType {}; }
+    };
+  using ValueType = typename PixelHelper< PixelType >::ValueType;
+  static constexpr at::ScalarType PyTorchValueType = at::CPPTypeToScalarType< ValueType >;
+  static constexpr SizeValueType NumberOfComponents = PixelHelper< PixelType >::NumberOfComponents;
+  static auto pixelInstance = PixelHelper< PixelType >::pixelInstance;
 
   /** Allocate CPU and GPU memory space */
   virtual void Allocate( bool initialize = false ) override;
