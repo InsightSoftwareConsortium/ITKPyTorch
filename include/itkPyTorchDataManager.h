@@ -41,7 +41,7 @@ namespace itk
 class PyTorchDataManager : public Object   //DataObject//
 {
   /** allow PyTorchKernelManager to access GPU buffer pointer */
-  // friend class OpenCLKernelManager;
+  friend class OpenCLKernelManager;
 
 public:
   ITK_DISALLOW_COPY_AND_ASSIGN( PyTorchDataManager );
@@ -69,7 +69,7 @@ public:
 
   virtual void SetBufferFlag( cl_mem_flags flags );
 
-  virtual void SetCPUBufferPointer( void * ptr );
+  virtual void SetCPUBufferPointer( void *ptr );
 
   virtual void SetCPUDirtyFlag( bool isDirty );
 
@@ -105,22 +105,24 @@ public:
   virtual bool Update();
 
   /** Method for grafting the content of one PyTorchDataManager into another one */
-  virtual void Graft( const PyTorchDataManager * data );
+  virtual void Graft( const PyTorchDataManager *data );
 
   /** Initialize PyTorchDataManager */
   virtual void Initialize();
 
   /** Get GPU buffer pointer */
-  virtual cl_mem * GetGPUBufferPointer();
+  virtual cl_mem *GetGPUBufferPointer();
 
   /** Get CPU buffer pointer */
-  virtual void * GetCPUBufferPointer();
+  virtual void *GetCPUBufferPointer();
 
   /** Make CPU buffer locked to avoid extra update from ITK pipeline. */
+  // How does this interact with the mutex?!!!
   virtual void SetCPUBufferLock( const bool v ) { this->m_CPUBufferLock = v; }
   itkGetConstReferenceMacro( CPUBufferLock, bool );
 
   /** Make GPU buffer locked to avoid extra update from ITK pipeline. */
+  // How does this interact with the mutex?!!!
   virtual void SetGPUBufferLock( const bool v ) { this->m_GPUBufferLock = v; }
   itkGetConstReferenceMacro( GPUBufferLock, bool );
 
@@ -128,20 +130,20 @@ protected:
 
   PyTorchDataManager();
   virtual ~PyTorchDataManager();
-  virtual void PrintSelf( std::ostream & os, Indent indent ) const override;
+  virtual void PrintSelf( std::ostream &os, Indent indent ) const override;
 
 protected:
 
   unsigned int m_BufferSize; // # of bytes
 
-  OpenCLContext * m_Context;
+  OpenCLContext *m_Context;
 
   /** buffer type */
   cl_mem_flags m_MemFlags;
 
   /** buffer pointers */
   cl_mem m_GPUBuffer;
-  void * m_CPUBuffer;
+  void *m_CPUBuffer;
 
   /** checks if buffer needs to be updated */
   bool m_IsGPUBufferDirty;

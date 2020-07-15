@@ -43,7 +43,6 @@ template< typename ImageType >
 class PyTorchImageDataManager : public PyTorchDataManager
 {
   // allow PyTorchKernelManager to access GPU buffer pointer
-  friend class OpenCLKernelManager;
   friend class PyTorchImage< typename ImageType::PixelType, ImageType::ImageDimension >;
 
 public:
@@ -65,7 +64,7 @@ public:
   virtual void UpdateGPUBuffer() override;
 
   /** Grafting GPU Image Data */
-  virtual void Graft( const PyTorchImageDataManager * data ) override;
+  virtual void Graft( const PyTorchImageDataManager *data ) override;
 
 protected:
 
@@ -75,7 +74,7 @@ protected:
 private:
 
   PyTorchImageDataManager( const Self & );   // purposely not implemented
-  Self &operator=( const Self & );        // purposely not implemented
+  Self &operator=( const Self & );           // purposely not implemented
 
   typename ImageType::Pointer m_Image;
 };

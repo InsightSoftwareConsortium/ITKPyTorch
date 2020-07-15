@@ -35,7 +35,7 @@ PyTorchImageToImageFilter< TInputImage, TOutputImage >
 template< typename TInputImage, typename TOutputImage >
 void
 PyTorchImageToImageFilter< TInputImage, TOutputImage >
-::PrintSelf( std::ostream & os, Indent indent ) const
+::PrintSelf( std::ostream &os, Indent indent ) const
 {
   Superclass::PrintSelf( os, indent );
 }
@@ -44,10 +44,10 @@ PyTorchImageToImageFilter< TInputImage, TOutputImage >
 template< typename TInputImage, typename TOutputImage >
 void
 PyTorchImageToImageFilter< TInputImage, TOutputImage >
-::DynamicThreadedGenerateData( const OutputRegionType & outputRegion )
+::DynamicThreadedGenerateData( const OutputRegionType &outputRegion )
 {
-  OutputImageType *      output = this->GetOutput();
-  const InputImageType * input = this->GetInput();
+  OutputImageType *output = this->GetOutput();
+  const InputImageType *input = this->GetInput();
   using InputRegionType = typename InputImageType::RegionType;
   InputRegionType inputRegion = InputRegionType( outputRegion.GetSize() );
 

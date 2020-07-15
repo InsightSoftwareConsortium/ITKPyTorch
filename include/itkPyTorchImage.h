@@ -81,17 +81,17 @@ public:
 
   virtual void Initialize() override;
 
-  virtual void FillBuffer( const TPixel & value ) override;
+  virtual void FillBuffer( const TPixel &value ) override;
 
-  virtual void SetPixel( const IndexType & index, const TPixel & value ) override;
+  virtual void SetPixel( const IndexType &index, const TPixel &value ) override;
 
-  virtual const TPixel &GetPixel( const IndexType & index ) const override;
+  virtual const TPixel &GetPixel( const IndexType &index ) const override;
 
-  virtual TPixel &GetPixel( const IndexType & index ) override;
+  virtual TPixel &GetPixel( const IndexType &index ) override;
 
-  virtual const TPixel &operator[]( const IndexType & index ) const override;
+  virtual const TPixel &operator[]( const IndexType &index ) const override;
 
-  virtual TPixel &operator[]( const IndexType & index ) override;
+  virtual TPixel &operator[]( const IndexType &index ) override;
 
   /** Explicit synchronize CPU/GPU buffers */
   virtual void UpdateBuffers() override;
@@ -104,7 +104,7 @@ public:
   /** Get CPU buffer pointer */
   virtual TPixel *GetBufferPointer() override;
 
-  virtual const TPixel * GetBufferPointer() const override;
+  virtual const TPixel *GetBufferPointer() const override;
 
   /** Return the Pixel Accessor object */
   virtual AccessorType GetPixelAccessor() override
@@ -138,7 +138,7 @@ public:
   }
 
 
-  virtual void SetPixelContainer( PixelContainer * container ) override;
+  virtual void SetPixelContainer( PixelContainer *container ) override;
 
   /** Return a pointer to the container. */
   virtual PixelContainer *GetPixelContainer() override
@@ -148,7 +148,7 @@ public:
   }
 
 
-  virtual const PixelContainer * GetPixelContainer() const override
+  virtual const PixelContainer *GetPixelContainer() const override
   {
     m_DataManager->UpdateCPUBuffer();
     return Superclass::GetPixelContainer();
@@ -190,9 +190,9 @@ public:
 
 
   /** Graft the data and information from one PyTorchImage to another. */
-  virtual void Graft( const DataObject * data ) override;
+  virtual void Graft( const DataObject *data ) override;
 
-  virtual void GraftITKImage( const DataObject * data ) override;
+  virtual void GraftITKImage( const DataObject *data ) override;
 
   /** Whenever the image has been modified, set the GPU Buffer to dirty */
   virtual void Modified() const;
@@ -207,7 +207,7 @@ protected:
   PyTorchImage();
   virtual ~PyTorchImage() {}
 
-  virtual void PrintSelf( std::ostream & os, Indent indent ) const override;
+  virtual void PrintSelf( std::ostream &os, Indent indent ) const override;
 
 private:
   bool m_Graft;

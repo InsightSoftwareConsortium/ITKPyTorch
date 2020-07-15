@@ -38,13 +38,14 @@ PyTorchDataManager::PyTorchDataManager()
 PyTorchDataManager::~PyTorchDataManager()
 {
   if( m_GPUBuffer )
-  {
+    {
 #if( defined( _WIN32 ) && defined( _DEBUG ) ) || !defined( NDEBUG )
     std::cout << "clReleaseMemObject" << "..." << std::endl;
 #endif
     cl_int errid = clReleaseMemObject( m_GPUBuffer );
+    // Why are we reporting an error here?!!!
     m_Context->ReportError( errid, __FILE__, __LINE__, ITK_LOCATION );
-  }
+    }
 }
 
 
@@ -69,30 +70,30 @@ void
 PyTorchDataManager::Allocate()
 {
   if( this->m_GPUBufferLock )
-  {
+    {
     return;
-  }
+    }
 
   cl_int errid;
 
   if( m_BufferSize > 0 )
-  {
+    {
 #if( defined( _WIN32 ) && defined( _DEBUG ) ) || !defined( NDEBUG )
     std::cout << "clCreateBuffer, "
- << this << "::Allocate Create GPU buffer of size "
- << m_BufferSize << " Bytes" << std::endl;
+              << this << "::Allocate Create GPU buffer of size "
+              << m_BufferSize << " Bytes" << std::endl;
 #endif
-    m_GPUBuffer = clCreateBuffer( m_Context->GetContextId(),
-      m_MemFlags, m_BufferSize, nullptr, &errid );
+    m_GPUBuffer = clCreateBuffer( m_Context->GetContextId(), m_MemFlags, m_BufferSize, nullptr, &errid );
+    // Why are we reporting an error here?!!!
     m_Context->ReportError( errid, __FILE__, __LINE__, ITK_LOCATION );
     m_IsGPUBufferDirty = true;
-  }
+    }
 }
 
 
 //------------------------------------------------------------------------------
 void
-PyTorchDataManager::SetCPUBufferPointer( void * ptr )
+PyTorchDataManager::SetCPUBufferPointer( void *ptr )
 {
   m_CPUBuffer = ptr;
 }
@@ -118,6 +119,7 @@ PyTorchDataManager::SetGPUDirtyFlag( bool isDirty )
 void
 PyTorchDataManager::SetGPUBufferDirty()
 {
+  // Why do we UpdateCPUBuffer before marking the GPUBuffer as dirty?!!!
   this->UpdateCPUBuffer();
   m_IsGPUBufferDirty = true;
 }
@@ -127,6 +129,7 @@ PyTorchDataManager::SetGPUBufferDirty()
 void
 PyTorchDataManager::SetCPUBufferDirty()
 {
+  // Why do we UpdateGPUBuffer before marking the CPUBuffer as dirty?!!!
   this->UpdateGPUBuffer();
   m_IsCPUBufferDirty = true;
 }
@@ -137,18 +140,18 @@ void
 PyTorchDataManager::UpdateCPUBuffer()
 {
   if( this->m_CPUBufferLock )
-  {
+    {
     return;
-  }
+    }
 
   MutexHolderType holder( m_Mutex );
 
   if( m_IsCPUBufferDirty && m_GPUBuffer != nullptr && m_CPUBuffer != nullptr )
-  {
+    {
 #if( defined( _WIN32 ) && defined( _DEBUG ) ) || !defined( NDEBUG )
     std::cout << "clEnqueueReadBuffer, " << this
- << "::UpdateCPUBuffer GPU->CPU data copy "
- << m_GPUBuffer << "->" << m_CPUBuffer << std::endl;
+              << "::UpdateCPUBuffer GPU->CPU data copy "
+              << m_GPUBuffer << "->" << m_CPUBuffer << std::endl;
 #endif
 
     cl_int errid;
@@ -162,11 +165,12 @@ PyTorchDataManager::UpdateCPUBuffer()
       m_BufferSize, m_CPUBuffer, 0, nullptr, nullptr );
 #endif
 
+    // Why report an error here?!!!
     m_Context->ReportError( errid, __FILE__, __LINE__, ITK_LOCATION );
     //m_ContextManager->OpenCLProfile( clEvent, "clEnqueueReadBuffer GPU->CPU" );
 
     m_IsCPUBufferDirty = false;
-  }
+    }
 }
 
 
@@ -175,17 +179,17 @@ void
 PyTorchDataManager::UpdateGPUBuffer()
 {
   if( this->m_GPUBufferLock )
-  {
+    {
     return;
-  }
+    }
 
   MutexHolderType holder( m_Mutex );
 
   if( m_IsGPUBufferDirty && m_CPUBuffer != nullptr && m_GPUBuffer != nullptr )
-  {
+    {
 #if( defined( _WIN32 ) && defined( _DEBUG ) ) || !defined( NDEBUG )
     std::cout << "clEnqueueWriteBuffer, " << this << "::UpdateGPUBuffer CPU->GPU data copy "
- << m_CPUBuffer << "->" << m_GPUBuffer << std::endl;
+              << m_CPUBuffer << "->" << m_GPUBuffer << std::endl;
 #endif
 
     cl_int errid;
@@ -203,7 +207,7 @@ PyTorchDataManager::UpdateGPUBuffer()
     //m_ContextManager->OpenCLProfile( clEvent, "clEnqueueWriteBuffer CPU->GPU" );
 
     m_IsGPUBufferDirty = false;
-  }
+    }
 }
 
 
@@ -211,6 +215,7 @@ PyTorchDataManager::UpdateGPUBuffer()
 cl_mem *
 PyTorchDataManager::GetGPUBufferPointer()
 {
+  // Conservatively assume that the pointer will be used to update the GPU buffer
   SetCPUBufferDirty();
   return &m_GPUBuffer;
 }
@@ -220,6 +225,7 @@ PyTorchDataManager::GetGPUBufferPointer()
 void *
 PyTorchDataManager::GetCPUBufferPointer()
 {
+  // Conservatively assume that the pointer will be used to update the CPU buffer
   SetGPUBufferDirty();
   return m_CPUBuffer;
 }
@@ -230,10 +236,10 @@ bool
 PyTorchDataManager::Update()
 {
   if( m_IsGPUBufferDirty && m_IsCPUBufferDirty )
-  {
+    {
     itkExceptionMacro( "Cannot make up-to-date buffer because both CPU and GPU buffers are dirty" );
     return false;
-  }
+    }
 
   this->UpdateGPUBuffer();
   this->UpdateCPUBuffer();
@@ -246,35 +252,35 @@ PyTorchDataManager::Update()
 
 //------------------------------------------------------------------------------
 void
-PyTorchDataManager::Graft( const PyTorchDataManager * data )
+PyTorchDataManager::Graft( const PyTorchDataManager *data )
 {
   if( data )
-  {
+    {
     m_BufferSize = data->m_BufferSize;
     m_Context    = data->m_Context;
     m_MemFlags   = data->m_MemFlags;
 
     if( m_GPUBuffer )  // Decrease reference count to GPU memory
-    {
+      {
 #if( defined( _WIN32 ) && defined( _DEBUG ) ) || !defined( NDEBUG )
       std::cout << "clReleaseMemObject" << "..." << std::endl;
 #endif
       clReleaseMemObject( m_GPUBuffer );
-    }
+      }
     if( data->m_GPUBuffer )  // Increase reference count to GPU memory
-    {
+      {
 #if( defined( _WIN32 ) && defined( _DEBUG ) ) || !defined( NDEBUG )
       std::cout << "clRetainMemObject" << "..." << std::endl;
 #endif
       clRetainMemObject( data->m_GPUBuffer );
-    }
+      }
 
     m_GPUBuffer = data->m_GPUBuffer;
     m_CPUBuffer = data->m_CPUBuffer;
 
     m_IsCPUBufferDirty = data->m_IsCPUBufferDirty;
     m_IsGPUBufferDirty = data->m_IsGPUBufferDirty;
-  }
+    }
 }
 
 
@@ -283,13 +289,14 @@ void
 PyTorchDataManager::Initialize()
 {
   if( m_GPUBuffer )  // Release GPU memory if exists
-  {
+    {
 #if( defined( _WIN32 ) && defined( _DEBUG ) ) || !defined( NDEBUG )
     std::cout << "clReleaseMemObject" << "..." << std::endl;
 #endif
     cl_int errid = clReleaseMemObject( m_GPUBuffer );
+    // Why report an error here?!!!
     m_Context->ReportError( errid, __FILE__, __LINE__, ITK_LOCATION );
-  }
+    }
 
   m_BufferSize       = 0;
   m_GPUBuffer        = nullptr;
@@ -305,7 +312,7 @@ PyTorchDataManager::Initialize()
 
 //------------------------------------------------------------------------------
 void
-PyTorchDataManager::PrintSelf( std::ostream & os, Indent indent ) const
+PyTorchDataManager::PrintSelf( std::ostream &os, Indent indent ) const
 {
   os << indent << "PyTorchDataManager( " << this << " )" << std::endl;
   os << indent << "m_BufferSize: " << m_BufferSize << std::endl;

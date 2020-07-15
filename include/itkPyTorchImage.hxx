@@ -46,9 +46,9 @@ PyTorchImage< TPixel, VImageDimension >
   Superclass::Allocate( initialize );
 
   if( !m_Graft )
-  {
+    {
     AllocateGPU(); // allocate GPU memory
-  }
+    }
 }
 
 
@@ -112,7 +112,7 @@ PyTorchImage< TPixel, VImageDimension >
 template< typename TPixel, unsigned int VImageDimension >
 void
 PyTorchImage< TPixel, VImageDimension >
-::FillBuffer( const TPixel & value )
+::FillBuffer( const TPixel &value )
 {
   m_DataManager->SetGPUBufferDirty();
   Superclass::FillBuffer( value );
@@ -123,7 +123,7 @@ PyTorchImage< TPixel, VImageDimension >
 template< typename TPixel, unsigned int VImageDimension >
 void
 PyTorchImage< TPixel, VImageDimension >
-::SetPixel( const IndexType & index, const TPixel & value )
+::SetPixel( const IndexType &index, const TPixel &value )
 {
   m_DataManager->SetGPUBufferDirty();
   Superclass::SetPixel( index, value );
@@ -134,7 +134,7 @@ PyTorchImage< TPixel, VImageDimension >
 template< typename TPixel, unsigned int VImageDimension >
 const TPixel &
 PyTorchImage< TPixel, VImageDimension >
-::GetPixel( const IndexType & index ) const
+::GetPixel( const IndexType &index ) const
 {
   m_DataManager->UpdateCPUBuffer();
   return Superclass::GetPixel( index );
@@ -142,14 +142,15 @@ PyTorchImage< TPixel, VImageDimension >
 
 
 //------------------------------------------------------------------------------
-// Allows user to subsequently change CPU buffer without marking GPU buffer as dirty!!!
 // Instead could return a class object (subclassing the IPixel) that knows how to find the CPU pixel and this image, but
-// marks the GPU dirty when an assignment changes anything.
+// marks the GPU dirty when an assignment changes anything!!!
 template< typename TPixel, unsigned int VImageDimension >
 TPixel &
 PyTorchImage< TPixel, VImageDimension >
-::GetPixel( const IndexType & index )
+::GetPixel( const IndexType &index )
 {
+  /* less conservative version - if you modify pixel value using
+   * this pointer then you must set the image as modified manually!!! */
   m_DataManager->UpdateCPUBuffer();
   return Superclass::GetPixel( index );
 }
@@ -160,8 +161,10 @@ PyTorchImage< TPixel, VImageDimension >
 template< typename TPixel, unsigned int VImageDimension >
 TPixel &
 PyTorchImage< TPixel, VImageDimension >
-::operator[]( const IndexType & index )
+::operator[]( const IndexType &index )
 {
+  /* less conservative version - if you modify pixel value using
+   * this pointer then you must set the image as modified manually!!! */
   m_DataManager->UpdateCPUBuffer();
   return Superclass::operator[]( index );
 }
@@ -171,7 +174,7 @@ PyTorchImage< TPixel, VImageDimension >
 template< typename TPixel, unsigned int VImageDimension >
 const TPixel &
 PyTorchImage< TPixel, VImageDimension >
-::operator[]( const IndexType & index ) const
+::operator[]( const IndexType &index ) const
 {
   m_DataManager->UpdateCPUBuffer();
   return Superclass::operator[]( index );
@@ -182,7 +185,7 @@ PyTorchImage< TPixel, VImageDimension >
 template< typename TPixel, unsigned int VImageDimension >
 void
 PyTorchImage< TPixel, VImageDimension >
-::SetPixelContainer( PixelContainer * container )
+::SetPixelContainer( PixelContainer *container )
 {
   Superclass::SetPixelContainer( container );
 
@@ -242,7 +245,6 @@ const TPixel *
 PyTorchImage< TPixel, VImageDimension >
 ::GetBufferPointer() const
 {
-  // const does not change buffer, but if CPU is dirty then make it up-to-date
   m_DataManager->UpdateCPUBuffer();
   return Superclass::GetBufferPointer();
 }
@@ -257,6 +259,7 @@ PyTorchImage< TPixel, VImageDimension >
   using PyTorchImageDataSuperclass = typename PyTorchImageDataManager< PyTorchImage >::Superclass;
   using PyTorchImageDataSuperclassPointer = typename PyTorchImageDataSuperclass::Pointer;
 
+  // Converts subclass smart pointer to base class smart pointer.  Is this supported?!!!
   return static_cast< PyTorchImageDataSuperclassPointer >( m_DataManager.GetPointer() );
 }
 
@@ -265,7 +268,7 @@ PyTorchImage< TPixel, VImageDimension >
 template< typename TPixel, unsigned int VImageDimension >
 void
 PyTorchImage< TPixel, VImageDimension >
-::GraftITKImage( const DataObject * data )
+::GraftITKImage( const DataObject *data )
 {
   Superclass::Graft( data );
 }
@@ -275,7 +278,7 @@ PyTorchImage< TPixel, VImageDimension >
 template< typename TPixel, unsigned int VImageDimension >
 void
 PyTorchImage< TPixel, VImageDimension >
-::Graft( const DataObject * data )
+::Graft( const DataObject *data )
 {
   // call the superclass' implementation
   Superclass::Graft( data );
@@ -284,14 +287,13 @@ PyTorchImage< TPixel, VImageDimension >
   {
     // Attempt to cast data to an PyTorchImageDataManagerType
     using PyTorchImageDataManagerType = PyTorchImageDataManager< PyTorchImage >;
-    const PyTorchImageDataManagerType * ptr;
+    const PyTorchImageDataManagerType *ptr;
 
     try
     {
       // Pass regular pointer to Graft() instead of smart pointer due to type
       // casting problem
-      ptr = dynamic_cast< const PyTorchImageDataManagerType * >(
-( ( ( PyTorchImage * )data )->GetGPUDataManager() ).GetPointer() );
+      ptr = dynamic_cast< const PyTorchImageDataManagerType * >( ( ( ( PyTorchImage * )data )->GetGPUDataManager() ).GetPointer() );
     }
     catch( ... )
     {
@@ -301,8 +303,7 @@ PyTorchImage< TPixel, VImageDimension >
     if( ptr )
     {
       // Debug
-      //std::cout << "GPU timestamp : " << m_DataManager->GetMTime() << ", CPU
-      // timestamp : " << this->GetMTime() << std::endl;
+      // std::cout << "GPU timestamp : " << m_DataManager->GetMTime() << ", CPU timestamp : " << this->GetMTime() << std::endl;
 
       // call GPU data graft function
       m_DataManager->SetImagePointer( this );
@@ -321,8 +322,8 @@ PyTorchImage< TPixel, VImageDimension >
     {
       // pointer could not be cast back down
       itkExceptionMacro(  << "itk::PyTorchImage::Graft() cannot cast "
- << typeid( data ).name() << " to "
- << typeid( const PyTorchImageDataManagerType * ).name() );
+        << typeid( data ).name() << " to "
+        << typeid( const PyTorchImageDataManagerType * ).name() );
     }
   }
 }
@@ -332,7 +333,7 @@ PyTorchImage< TPixel, VImageDimension >
 template< typename TPixel, unsigned int VImageDimension >
 void
 PyTorchImage< TPixel, VImageDimension >
-::PrintSelf( std::ostream & os, Indent indent ) const
+::PrintSelf( std::ostream &os, Indent indent ) const
 {
   Superclass::PrintSelf( os, indent );
 

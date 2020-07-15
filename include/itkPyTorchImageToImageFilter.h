@@ -63,11 +63,11 @@ protected:
   PyTorchImageToImageFilter();
   ~PyTorchImageToImageFilter() override = default;
 
-  void PrintSelf( std::ostream & os, Indent indent ) const override;
+  void PrintSelf( std::ostream &os, Indent indent ) const override;
 
   using OutputRegionType = typename OutputImageType::RegionType;
 
-  void DynamicThreadedGenerateData( const OutputRegionType & outputRegion ) override;
+  void DynamicThreadedGenerateData( const OutputRegionType &outputRegion ) override;
 
 private:
 #ifdef ITK_USE_CONCEPT_CHECKING

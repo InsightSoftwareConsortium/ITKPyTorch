@@ -19,6 +19,7 @@
 #ifndef itkPyTorchImageDataManager_hxx
 #define itkPyTorchImageDataManager_hxx
 
+#include <torch/script.h>
 #include "itkPyTorchImageDataManager.h"
 
 //#define VERBOSE
@@ -45,6 +46,7 @@ PyTorchImageDataManager< ImageType >::UpdateCPUBuffer()
 
   if( m_Image.IsNotNull() )
   {
+    // Why not instead use a MutexHolderType here?!!!
     m_Mutex.lock();
 
     unsigned long gpu_time       = this->GetMTime();
@@ -64,15 +66,10 @@ PyTorchImageDataManager< ImageType >::UpdateCPUBuffer()
       std::cout << "clEnqueueReadBuffer GPU->CPU" << "..." << std::endl;
 #endif
 
-#ifdef OPENCL_PROFILING
-      cl_event clEvent = NULL;
-      errid = clEnqueueReadBuffer( m_Context->GetCommandQueue().GetQueueId(),
-        m_GPUBuffer, CL_TRUE, 0, m_BufferSize, m_CPUBuffer, 0, nullptr, &clEvent );
-#else
       errid = clEnqueueReadBuffer( m_Context->GetCommandQueue().GetQueueId(),
         m_GPUBuffer, CL_TRUE, 0, m_BufferSize, m_CPUBuffer, 0, 0, 0 );
-#endif
 
+      // Why report error here?!!!
       m_Context->ReportError( errid, __FILE__, __LINE__, ITK_LOCATION );
       //m_ContextManager->OpenCLProfile( clEvent, "clEnqueueReadBuffer GPU->CPU" );
 
@@ -99,7 +96,8 @@ PyTorchImageDataManager< ImageType >::UpdateGPUBuffer()
   }
 
   if( m_Image.IsNotNull() )
-  {
+    {
+    // Why not instead use a MutexHolderType here?!!!
     m_Mutex.lock();
 
     unsigned long gpu_time       = this->GetMTime();
@@ -113,20 +111,14 @@ PyTorchImageDataManager< ImageType >::UpdateGPUBuffer()
     * CPU and GPU data as well
     */
     if( ( m_IsGPUBufferDirty ||( gpu_time< cpu_time ) ) && m_CPUBuffer != nullptr && m_GPUBuffer != nullptr )
-    {
+      {
       cl_int errid;
 #if( defined( _WIN32 ) && defined( _DEBUG ) ) || !defined( NDEBUG )
       std::cout << "clEnqueueWriteBuffer CPU->GPU" << "..." << std::endl;
 #endif
 
-#ifdef OPENCL_PROFILING
-      cl_event clEvent = NULL;
-      errid = clEnqueueWriteBuffer( m_Context->GetCommandQueue().GetQueueId(),
-        m_GPUBuffer, CL_TRUE, 0, m_BufferSize, m_CPUBuffer, 0, nullptr, &clEvent );
-#else
       errid = clEnqueueWriteBuffer( m_Context->GetCommandQueue().GetQueueId(),
         m_GPUBuffer, CL_TRUE, 0, m_BufferSize, m_CPUBuffer, 0, nullptr, nullptr );
-#endif
       m_Context->ReportError( errid, __FILE__, __LINE__, ITK_LOCATION );
       //m_ContextManager->OpenCLProfile( clEvent, "clEnqueueWriteBuffer CPU->GPU" );
 
@@ -134,25 +126,23 @@ PyTorchImageDataManager< ImageType >::UpdateGPUBuffer()
 
       m_IsCPUBufferDirty = false;
       m_IsGPUBufferDirty = false;
-    }
+      }
 
     m_Mutex.unlock();
-  }
+    }
 }
 
 
 //------------------------------------------------------------------------------
 template< typename ImageType >
 void
-PyTorchImageDataManager< ImageType >::Graft( const PyTorchImageDataManager * data )
+PyTorchImageDataManager< ImageType >::Graft( const PyTorchImageDataManager *data )
 {
-  //std::cout << "GPU timestamp : " << this->GetMTime() << ", CPU timestamp : "
-  // << m_Image->GetMTime() << std::endl;
+  // std::cout << "GPU timestamp : " << this->GetMTime() << ", CPU timestamp : " << m_Image->GetMTime() << std::endl;
 
   Superclass::Graft( data );
 
-  //std::cout << "GPU timestamp : " << this->GetMTime() << ", CPU timestamp : "
-  // << m_Image->GetMTime() << std::endl;
+  // std::cout << "GPU timestamp : " << this->GetMTime() << ", CPU timestamp : " << m_Image->GetMTime() << std::endl;
 }
 
 
