@@ -19,7 +19,6 @@
 #ifndef itkPyTorchImageDataManager_hxx
 #define itkPyTorchImageDataManager_hxx
 
-#include <torch/script.h>
 #include "itkPyTorchImageDataManager.h"
 
 //#define VERBOSE
@@ -37,17 +36,46 @@ PyTorchImageDataManager< TImage >::SetImagePointer( typename ImageType::Pointer 
 //------------------------------------------------------------------------------
 template< typename TImage >
 void
+PyTorchImageDataManager< TImage >::Allocate()
+{
+  // Write me!!!
+  m_IsCPUBufferAllocated = true;
+  m_IsGPUBufferAllocated = true;
+}
+
+
+//------------------------------------------------------------------------------
+template< typename TImage >
+void
+PyTorchImageDataManager< TImage >::Initialize()
+{
+  // Write me!!!  Release GPU memory if it exists!!!
+  Superclass::Initialize();
+}
+
+
+//------------------------------------------------------------------------------
+template< typename TImage >
+void
+PyTorchImageDataManager< TImage >::SetCPUBufferPointer( void *ptr )
+{
+  // Write me!!!
+}
+
+
+//------------------------------------------------------------------------------
+template< typename TImage >
+void
 PyTorchImageDataManager< TImage >::UpdateCPUBuffer()
 {
   if( this->m_CPUBufferLock )
-  {
+    {
     return;
-  }
+    }
 
   if( m_Image.IsNotNull() )
-  {
-    // Why not instead use a MutexHolderType here?!!!
-    m_Mutex.lock();
+    {
+    MutexHolderType holder( m_Mutex );
 
     unsigned long gpu_time       = this->GetMTime();
     TimeStamp     cpu_time_stamp = m_Image->GetTimeStamp();
@@ -59,29 +87,18 @@ PyTorchImageDataManager< TImage >::UpdateCPUBuffer()
     * correctly managed. Therefore, we check the time stamp of
     * CPU and GPU data as well
     */
-    if( ( m_IsCPUBufferDirty ||( gpu_time > cpu_time ) ) && m_GPUBuffer != nullptr && m_CPUBuffer != nullptr )
-    {
-      cl_int errid;
-#if( defined( _WIN32 ) && defined( _DEBUG ) ) || !defined( NDEBUG )
-      std::cout << "clEnqueueReadBuffer GPU->CPU" << "..." << std::endl;
-#endif
-
-      errid = clEnqueueReadBuffer( m_Context->GetCommandQueue().GetQueueId(),
-        m_GPUBuffer, CL_TRUE, 0, m_BufferSize, m_CPUBuffer, 0, 0, 0 );
-
-      // Why report error here?!!!
-      m_Context->ReportError( errid, __FILE__, __LINE__, ITK_LOCATION );
-      //m_ContextManager->OpenCLProfile( clEvent, "clEnqueueReadBuffer GPU->CPU" );
+    if( ( m_IsCPUBufferDirty ||( gpu_time > cpu_time ) ) && m_IsGPUBufferAllocated && m_IsCPUBufferAllocated )
+      {
+      // Update CPU Buffer.  Does this change the location of the CPU data?!!!
+      m_CPUTensor = m_GPUTensor.to(at::kCPU);
 
       m_Image->Modified();
       this->SetTimeStamp( m_Image->GetTimeStamp() );
 
       m_IsCPUBufferDirty = false;
       m_IsGPUBufferDirty = false;
+      }
     }
-
-    m_Mutex.unlock();
-  }
 }
 
 
@@ -91,14 +108,13 @@ void
 PyTorchImageDataManager< TImage >::UpdateGPUBuffer()
 {
   if( this->m_GPUBufferLock )
-  {
+    {
     return;
-  }
+    }
 
   if( m_Image.IsNotNull() )
     {
-    // Why not instead use a MutexHolderType here?!!!
-    m_Mutex.lock();
+    MutexHolderType holder( m_Mutex );
 
     unsigned long gpu_time       = this->GetMTime();
     TimeStamp     cpu_time_stamp = m_Image->GetTimeStamp();
@@ -110,25 +126,16 @@ PyTorchImageDataManager< TImage >::UpdateGPUBuffer()
     * correctly managed. Therefore, we check the time stamp of
     * CPU and GPU data as well
     */
-    if( ( m_IsGPUBufferDirty ||( gpu_time< cpu_time ) ) && m_CPUBuffer != nullptr && m_GPUBuffer != nullptr )
+    if( ( m_IsGPUBufferDirty ||( gpu_time< cpu_time ) ) && m_IsCPUBufferAllocated && m_IsGPUBufferAllocated )
       {
-      cl_int errid;
-#if( defined( _WIN32 ) && defined( _DEBUG ) ) || !defined( NDEBUG )
-      std::cout << "clEnqueueWriteBuffer CPU->GPU" << "..." << std::endl;
-#endif
-
-      errid = clEnqueueWriteBuffer( m_Context->GetCommandQueue().GetQueueId(),
-        m_GPUBuffer, CL_TRUE, 0, m_BufferSize, m_CPUBuffer, 0, nullptr, nullptr );
-      m_Context->ReportError( errid, __FILE__, __LINE__, ITK_LOCATION );
-      //m_ContextManager->OpenCLProfile( clEvent, "clEnqueueWriteBuffer CPU->GPU" );
+      // Update GPU Buffer
+      m_GPUTensor = m_CPUTensor.to(at::kCUDA);
 
       this->SetTimeStamp( cpu_time_stamp );
 
       m_IsCPUBufferDirty = false;
       m_IsGPUBufferDirty = false;
       }
-
-    m_Mutex.unlock();
     }
 }
 
@@ -140,6 +147,7 @@ PyTorchImageDataManager< TImage >::Graft( const PyTorchImageDataManager *data )
 {
   // std::cout << "GPU timestamp : " << this->GetMTime() << ", CPU timestamp : " << m_Image->GetMTime() << std::endl;
 
+  // Write me!!!  Graft actual pixel values.
   Superclass::Graft( data );
 
   // std::cout << "GPU timestamp : " << this->GetMTime() << ", CPU timestamp : " << m_Image->GetMTime() << std::endl;

@@ -19,10 +19,20 @@
 #ifndef itkPyTorchImage_h
 #define itkPyTorchImage_h
 
+#include <torch/torch.h>
 #include "itkImage.h"
 #include "itkPyTorchImageDataManager.h"
 #include "itkVersion.h"
 #include "itkObjectFactoryBase.h"
+
+template <typename TComponent = unsigned short>
+class ITK_TEMPLATE_EXPORT RGBPixel;
+template <typename TComponent = unsigned short>
+class ITK_TEMPLATE_EXPORT RGBAPixel;
+template <typename T, unsigned int NVectorDimension = 3>
+class ITK_TEMPLATE_EXPORT Vector;
+template <typename T, unsigned int NVectorDimension = 3>
+class ITK_TEMPLATE_EXPORT CovariantVector;
 
 namespace itk
 {
@@ -55,7 +65,6 @@ public:
   static constexpr unsigned int ImageDimension = VImageDimension;
 
   using PixelType = typename Superclass::PixelType;
-  using ValueType = typename Superclass::ValueType;
   using InternalPixelType = typename Superclass::InternalPixelType;
   using IOPixelType = typename Superclass::IOPixelType;
   using DirectionType = typename Superclass::DirectionType;
@@ -128,7 +137,7 @@ public:
     static PixelType pixelInstance( unsigned numberOfComponents ) { return PixelType {}; }
     };
   using ValueType = typename PixelHelper< PixelType >::ValueType;
-  static constexpr at::ScalarType PyTorchValueType = at::CPPTypeToScalarType< ValueType >;
+  static constexpr at::ScalarType PyTorchValueType = c10::impl::CPPTypeToScalarType< ValueType >::value;
   static constexpr SizeValueType NumberOfComponents = PixelHelper< PixelType >::NumberOfComponents;
   static auto pixelInstance = PixelHelper< PixelType >::pixelInstance;
 
@@ -224,9 +233,6 @@ public:
     return m_DataManager->GetCurrentCommandQueueId();
   }
 
-
-  // Returns base class?!!!
-  virtual PyTorchDataManager::Pointer GetPyTorchDataManager() const override;
 
   /** Override DataHasBeenGenerated() in DataObject class.
    * We need this because CPU time stamp is always bigger

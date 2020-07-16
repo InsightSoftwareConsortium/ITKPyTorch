@@ -50,12 +50,16 @@ public:
   using ConstPointer = SmartPointer< const Self >;
   using ImageType = TImage;
   using PixelType = typename ImageType::PixelType;
-
-  // allow PyTorchKernelManager to access GPU buffer pointer
-  friend class PyTorchImage< typename ImageType::PixelType, ImageType::ImageDimension >;
+  using ValueType = typename ImageType::ImageType;
 
   itkNewMacro( Self );
   itkTypeMacro( PyTorchImageDataManager, PyTorchDataManager );
+
+  virtual void Allocate();
+
+  virtual void Initialize();
+
+  virtual void SetCPUBufferPointer( void *ptr );
 
   virtual void SetImagePointer( typename ImageType::Pointer img ) override;
 
@@ -69,6 +73,17 @@ public:
   virtual void Graft( const PyTorchImageDataManager *data ) override;
 
 protected:
+  /** Storage for CPU and GPU tensors is type specific, so we have it here instead of in the base class PyTorchDataManager */
+  torch::Tensor m_CPUTensor;
+  torch::Tensor m_GPUTensor;
+  virtual ValueType *GetCPUBufferPointer()
+    {
+    return m_CPUTensor.data< ValueType >();
+    }
+  virtual const ValueType *GetCPUBufferPointer() const
+    {
+    return m_CPUTensor.data< ValueType >();
+    }
 
   PyTorchImageDataManager() { m_Image = nullptr; }
   virtual ~PyTorchImageDataManager() {}

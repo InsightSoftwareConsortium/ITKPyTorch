@@ -142,29 +142,26 @@ PyTorchImage< TPixel, VImageDimension >
 
 
 //------------------------------------------------------------------------------
-// Instead could return a class object (subclassing the IPixel) that knows how to find the CPU pixel and this image, but
-// marks the GPU dirty when an assignment changes anything!!!
 template< typename TPixel, unsigned int VImageDimension >
 TPixel &
 PyTorchImage< TPixel, VImageDimension >
 ::GetPixel( const IndexType &index )
 {
   /* less conservative version - if you modify pixel value using
-   * this pointer then you must set the image as modified manually!!! */
+   * this pointer then you must set the image as modified manually */
   m_DataManager->UpdateCPUBuffer();
   return Superclass::GetPixel( index );
 }
 
 
 //------------------------------------------------------------------------------
-// See GetPixel (non-const) above!!!
 template< typename TPixel, unsigned int VImageDimension >
 TPixel &
 PyTorchImage< TPixel, VImageDimension >
 ::operator[]( const IndexType &index )
 {
   /* less conservative version - if you modify pixel value using
-   * this pointer then you must set the image as modified manually!!! */
+   * this pointer then you must set the image as modified manually */
   m_DataManager->UpdateCPUBuffer();
   return Superclass::operator[]( index );
 }
@@ -195,7 +192,6 @@ PyTorchImage< TPixel, VImageDimension >
 
 
 //------------------------------------------------------------------------------
-// How do DirtyFlags and timestamps interact?!!!
 template< typename TPixel, unsigned int VImageDimension >
 void
 PyTorchImage< TPixel, VImageDimension >
@@ -233,7 +229,7 @@ PyTorchImage< TPixel, VImageDimension >
 ::GetBufferPointer()
 {
   /* less conservative version - if you modify pixel value using
-   * this pointer then you must set the image as modified manually!!! */
+   * this pointer then you must set the image as modified manually */
   m_DataManager->UpdateCPUBuffer();
   return Superclass::GetBufferPointer();
 }
@@ -247,20 +243,6 @@ PyTorchImage< TPixel, VImageDimension >
 {
   m_DataManager->UpdateCPUBuffer();
   return Superclass::GetBufferPointer();
-}
-
-
-//------------------------------------------------------------------------------
-template< typename TPixel, unsigned int VImageDimension >
-PyTorchDataManager::Pointer
-PyTorchImage< TPixel, VImageDimension >
-::GetPyTorchDataManager() const
-{
-  using PyTorchImageDataSuperclass = typename PyTorchImageDataManager< PyTorchImage >::Superclass;
-  using PyTorchImageDataSuperclassPointer = typename PyTorchImageDataSuperclass::Pointer;
-
-  // Converts subclass smart pointer to base class smart pointer.  Is this supported?!!!
-  return static_cast< PyTorchImageDataSuperclassPointer >( m_DataManager.GetPointer() );
 }
 
 

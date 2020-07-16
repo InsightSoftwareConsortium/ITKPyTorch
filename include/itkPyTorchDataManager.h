@@ -39,9 +39,6 @@ namespace itk
  */
 class PyTorchDataManager : public Object   //DataObject//
 {
-  /** allow PyTorchKernelManager to access GPU buffer pointer */
-  friend class OpenCLKernelManager;
-
 public:
   ITK_DISALLOW_COPY_AND_ASSIGN( PyTorchDataManager );
 
@@ -51,24 +48,13 @@ public:
   using ConstPointer = SmartPointer< const Self >;
 
   /** Method for creation through the object factory. */
-  itkNewMacro( Self );
+  // itkNewMacro( Self );          // Cannot because class is abstract.  Is this a problem?!!!
 
   /** Run-time type information( and related methods ). */
   itkTypeMacro( PyTorchDataManager, Object );
 
-  using MutexHolderType = std::lock_guard< std::mutex >;
-
-  /** total buffer size in bytes */
-  virtual void SetBufferSize( unsigned int num );
-
-  virtual unsigned int GetBufferSize() const
-  {
-    return m_BufferSize;
-  }
-
-  virtual void SetBufferFlag( cl_mem_flags flags );
-
-  virtual void SetCPUBufferPointer( void *ptr );
+  using MutexType = std::mutex;
+  using MutexHolderType = std::lock_guard< MutexType >;
 
   virtual void SetCPUDirtyFlag( bool isDirty );
 
@@ -93,12 +79,10 @@ public:
   }
 
   /** actual GPU->CPU memory copy takes place here */
-  virtual void UpdateCPUBuffer();
+  virtual void UpdateCPUBuffer() = 0;
 
   /** actual CPU->GPU memory copy takes place here */
-  virtual void UpdateGPUBuffer();
-
-  virtual void Allocate();
+  virtual void UpdateGPUBuffer() = 0;
 
   /** Synchronize CPU and GPU buffers( using dirty flags ) */
   virtual bool Update();
@@ -109,19 +93,11 @@ public:
   /** Initialize PyTorchDataManager */
   virtual void Initialize();
 
-  /** Get GPU buffer pointer */
-  virtual cl_mem *GetGPUBufferPointer();
-
-  /** Get CPU buffer pointer */
-  virtual void *GetCPUBufferPointer();
-
   /** Make CPU buffer locked to avoid extra update from ITK pipeline. */
-  // How does this interact with the mutex?!!!
   virtual void SetCPUBufferLock( const bool v ) { this->m_CPUBufferLock = v; }
   itkGetConstReferenceMacro( CPUBufferLock, bool );
 
   /** Make GPU buffer locked to avoid extra update from ITK pipeline. */
-  // How does this interact with the mutex?!!!
   virtual void SetGPUBufferLock( const bool v ) { this->m_GPUBufferLock = v; }
   itkGetConstReferenceMacro( GPUBufferLock, bool );
 
@@ -133,18 +109,11 @@ protected:
 
 protected:
 
-  unsigned int m_BufferSize; // # of bytes
+  /** checks if buffer has been allocated */
+  bool m_IsGPUBufferAllocated;  // Make sure I am updated appropriately!!!
+  bool m_IsCPUBufferAllocated;  // Make sure I am updated appropriately!!!
 
-  OpenCLContext *m_Context;
-
-  /** buffer type */
-  cl_mem_flags m_MemFlags;
-
-  /** buffer pointers */
-  cl_mem m_GPUBuffer;
-  void *m_CPUBuffer;
-
-  /** checks if buffer needs to be updated */
+  /** checks if buffer needs to be updated */ // "Dirty" usually means that it is newer!!!
   bool m_IsGPUBufferDirty;
   bool m_IsCPUBufferDirty;
 
@@ -153,7 +122,7 @@ protected:
   bool m_GPUBufferLock;
 
   /** Mutex lock to prevent r/w hazard for multithreaded code */
-  std::mutex m_Mutex;
+  MutexType m_Mutex;
 };
 
 } // namespace itk
