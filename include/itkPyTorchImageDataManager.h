@@ -49,8 +49,9 @@ public:
   using Pointer = SmartPointer< Self >;
   using ConstPointer = SmartPointer< const Self >;
   using ImageType = TImage;
+  friend ImageType;
   using PixelType = typename ImageType::PixelType;
-  using ValueType = typename ImageType::ImageType;
+  using ValueType = typename ImageType::ValueType;
 
   itkNewMacro( Self );
   itkTypeMacro( PyTorchImageDataManager, PyTorchDataManager );
@@ -59,9 +60,11 @@ public:
 
   virtual void Initialize();
 
+  virtual void SetPyTorchSize( const std::vector< typename ImageType::SizeValueType > &pyTorchSize );
+
   virtual void SetCPUBufferPointer( void *ptr );
 
-  virtual void SetImagePointer( typename ImageType::Pointer img ) override;
+  virtual void SetImagePointer( typename ImageType::Pointer img );
 
   /** actual GPU->CPU memory copy takes place here */
   virtual void UpdateCPUBuffer() override;
@@ -70,7 +73,7 @@ public:
   virtual void UpdateGPUBuffer() override;
 
   /** Grafting GPU Image Data */
-  virtual void Graft( const PyTorchImageDataManager *data ) override;
+  virtual void Graft( const PyTorchImageDataManager *data );
 
 protected:
   /** Storage for CPU and GPU tensors is type specific, so we have it here instead of in the base class PyTorchDataManager */
@@ -78,15 +81,15 @@ protected:
   torch::Tensor m_GPUTensor;
   virtual ValueType *GetCPUBufferPointer()
     {
-    return m_CPUTensor.data< ValueType >();
+    return m_CPUTensor.data_ptr< ValueType >();
     }
   virtual const ValueType *GetCPUBufferPointer() const
     {
-    return m_CPUTensor.data< ValueType >();
+    return m_CPUTensor.data_ptr< ValueType >();
     }
 
   PyTorchImageDataManager() { m_Image = nullptr; }
-  virtual ~PyTorchImageDataManager() {}
+  virtual ~PyTorchImageDataManager() {} // Will torch::Tensor destructors free memory?!!!
 
 private:
 
@@ -94,6 +97,8 @@ private:
   Self &operator=( const Self & );           // purposely not implemented
 
   typename ImageType::Pointer m_Image;
+
+  std::vector< SizeValueType > m_Size;
 };
 
 } // namespace itk

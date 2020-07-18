@@ -56,26 +56,26 @@ public:
   using MutexType = std::mutex;
   using MutexHolderType = std::lock_guard< MutexType >;
 
-  virtual void SetCPUDirtyFlag( bool isDirty );
+  virtual void SetCPUStaleFlag( bool isStale );
 
-  virtual void SetGPUDirtyFlag( bool isDirty );
+  virtual void SetGPUStaleFlag( bool isStale );
 
-  /** Make GPU up-to-date and mark CPU as dirty.
+  /** Make GPU up-to-date and mark CPU as stale.
    * Call this function when you want to modify CPU data */
-  virtual void SetCPUBufferDirty();
+  virtual void SetCPUBufferStale();
 
-  /** Make CPU up-to-date and mark GPU as dirty.
+  /** Make CPU up-to-date and mark GPU as stale.
    * Call this function when you want to modify GPU data */
-  virtual void SetGPUBufferDirty();
+  virtual void SetGPUBufferStale();
 
-  virtual bool IsCPUBufferDirty() const
+  virtual bool IsCPUBufferStale() const
   {
-    return m_IsCPUBufferDirty;
+    return m_IsCPUBufferStale;
   }
 
-  virtual bool IsGPUBufferDirty() const
+  virtual bool IsGPUBufferStale() const
   {
-    return m_IsGPUBufferDirty;
+    return m_IsGPUBufferStale;
   }
 
   /** actual GPU->CPU memory copy takes place here */
@@ -84,7 +84,7 @@ public:
   /** actual CPU->GPU memory copy takes place here */
   virtual void UpdateGPUBuffer() = 0;
 
-  /** Synchronize CPU and GPU buffers( using dirty flags ) */
+  /** Synchronize CPU and GPU buffers( using stale flags ) */
   virtual bool Update();
 
   /** Method for grafting the content of one PyTorchDataManager into another one */
@@ -94,12 +94,12 @@ public:
   virtual void Initialize();
 
   /** Make CPU buffer locked to avoid extra update from ITK pipeline. */
-  virtual void SetCPUBufferLock( const bool v ) { this->m_CPUBufferLock = v; }
-  itkGetConstReferenceMacro( CPUBufferLock, bool );
+  virtual void SetIsCPUBufferLocked( const bool v ) { m_IsCPUBufferLocked = v; }
+  itkGetConstReferenceMacro( IsCPUBufferLocked, bool );
 
   /** Make GPU buffer locked to avoid extra update from ITK pipeline. */
-  virtual void SetGPUBufferLock( const bool v ) { this->m_GPUBufferLock = v; }
-  itkGetConstReferenceMacro( GPUBufferLock, bool );
+  virtual void SetIsGPUBufferLocked( const bool v ) { m_IsGPUBufferLocked = v; }
+  itkGetConstReferenceMacro( IsGPUBufferLocked, bool );
 
 protected:
 
@@ -113,13 +113,13 @@ protected:
   bool m_IsGPUBufferAllocated;  // Make sure I am updated appropriately!!!
   bool m_IsCPUBufferAllocated;  // Make sure I am updated appropriately!!!
 
-  /** checks if buffer needs to be updated */ // "Dirty" usually means that it is newer!!!
-  bool m_IsGPUBufferDirty;
-  bool m_IsCPUBufferDirty;
+  /** checks if buffer needs to be updated */
+  bool m_IsGPUBufferStale;
+  bool m_IsCPUBufferStale;
 
   /** extra safety flags */
-  bool m_CPUBufferLock;
-  bool m_GPUBufferLock;
+  bool m_IsCPUBufferLocked;
+  bool m_IsGPUBufferLocked;
 
   /** Mutex lock to prevent r/w hazard for multithreaded code */
   MutexType m_Mutex;

@@ -36,37 +36,37 @@ PyTorchDataManager::~PyTorchDataManager()
 
 //------------------------------------------------------------------------------
 void
-PyTorchDataManager::SetCPUDirtyFlag( bool isDirty )
+PyTorchDataManager::SetCPUStaleFlag( bool isStale )
 {
-  m_IsCPUBufferDirty = isDirty;
+  m_IsCPUBufferStale = isStale;
 }
 
 
 //------------------------------------------------------------------------------
 void
-PyTorchDataManager::SetGPUDirtyFlag( bool isDirty )
+PyTorchDataManager::SetGPUStaleFlag( bool isStale )
 {
-  m_IsGPUBufferDirty = isDirty;
+  m_IsGPUBufferStale = isStale;
 }
 
 
 //------------------------------------------------------------------------------
 void
-PyTorchDataManager::SetGPUBufferDirty()
+PyTorchDataManager::SetGPUBufferStale()
 {
-  // Why do we UpdateCPUBuffer before marking the GPUBuffer as dirty?!!!
+  // Why do we UpdateCPUBuffer before marking the GPUBuffer as stale?!!!
   this->UpdateCPUBuffer();
-  m_IsGPUBufferDirty = true;
+  m_IsGPUBufferStale = true;
 }
 
 
 //------------------------------------------------------------------------------
 void
-PyTorchDataManager::SetCPUBufferDirty()
+PyTorchDataManager::SetCPUBufferStale()
 {
-  // Why do we UpdateGPUBuffer before marking the CPUBuffer as dirty?!!!
+  // Why do we UpdateGPUBuffer before marking the CPUBuffer as stale?!!!
   this->UpdateGPUBuffer();
-  m_IsCPUBufferDirty = true;
+  m_IsCPUBufferStale = true;
 }
 
 
@@ -74,16 +74,16 @@ PyTorchDataManager::SetCPUBufferDirty()
 bool
 PyTorchDataManager::Update()
 {
-  if( m_IsGPUBufferDirty && m_IsCPUBufferDirty )
+  if( m_IsGPUBufferStale && m_IsCPUBufferStale )
     {
-    itkExceptionMacro( "Cannot make up-to-date buffer because both CPU and GPU buffers are dirty" );
+    itkExceptionMacro( "Cannot make up-to-date buffer because both CPU and GPU buffers are stale" );
     return false;
     }
 
   this->UpdateGPUBuffer();
   this->UpdateCPUBuffer();
 
-  m_IsGPUBufferDirty = m_IsCPUBufferDirty = false;
+  m_IsGPUBufferStale = m_IsCPUBufferStale = false;
 
   return true;
 }
@@ -95,8 +95,8 @@ PyTorchDataManager::Graft( const PyTorchDataManager *data )
 {
   if( data )
     {
-    m_IsCPUBufferDirty = data->m_IsCPUBufferDirty;
-    m_IsGPUBufferDirty = data->m_IsGPUBufferDirty;
+    m_IsCPUBufferStale = data->m_IsCPUBufferStale;
+    m_IsGPUBufferStale = data->m_IsGPUBufferStale;
     }
 }
 
@@ -107,10 +107,10 @@ PyTorchDataManager::Initialize()
 {
   m_IsCPUBufferAllocated = false;
   m_IsGPUBufferAllocated = false;
-  m_IsGPUBufferDirty = false;
-  m_IsCPUBufferDirty = false;
-  m_CPUBufferLock = false;
-  m_GPUBufferLock = false;
+  m_IsGPUBufferStale = false;
+  m_IsCPUBufferStale = false;
+  m_IsCPUBufferLocked = false;
+  m_IsGPUBufferLocked = false;
 }
 
 
@@ -121,10 +121,10 @@ PyTorchDataManager::PrintSelf( std::ostream &os, Indent indent ) const
   os << indent << "PyTorchDataManager( " << this << " )" << std::endl;
   os << indent << "m_IsGPUBufferAllocated: " << m_IsGPUBufferAllocated << std::endl;
   os << indent << "m_IsCPUBufferAllocated: " << m_IsCPUBufferAllocated << std::endl;
-  os << indent << "m_IsGPUBufferDirty: " << m_IsGPUBufferDirty << std::endl;
-  os << indent << "m_IsCPUBufferDirty: " << m_IsCPUBufferDirty << std::endl;
-  os << indent << "m_CPUBufferLock: " << m_CPUBufferLock << std::endl;
-  os << indent << "m_GPUBufferLock: " << m_GPUBufferLock << std::endl;
+  os << indent << "m_IsGPUBufferStale: " << m_IsGPUBufferStale << std::endl;
+  os << indent << "m_IsCPUBufferStale: " << m_IsCPUBufferStale << std::endl;
+  os << indent << "m_IsCPUBufferLocked: " << m_IsCPUBufferLocked << std::endl;
+  os << indent << "m_IsGPUBufferLocked: " << m_IsGPUBufferLocked << std::endl;
 }
 
 

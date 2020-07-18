@@ -14,6 +14,8 @@ We will set up a demonstration of this using [ Binder ](www.mybinder.org) that a
 
 The ITK `PyTorchImage< TPixel, VImageDimension >` templated class in C++ is a subclass of the corresponding ITK `Image< TPixel, VImageDimension >` templated class and supports the same pixel types (i.e., integers, real numbers, `RGBPixel`, `RGBAPixel`, `Vector`, and `CovariantVector`) and the same numbers of dimensions.  A `PyTorchImage` can be used in lieu of an `Image` in ITK pipelines but also can be used with filters and transformations that are specialized for `PyTorchImage` objects.  These specialized pipeline steps are executed on a CUDA GPU using the C++ `libTorch` interface.
 
+It is intended that this module enable MONAI intergration.
+
 ## Installation for Python
 [ ![ PyPI Version ](https://img.shields.io/pypi/v/itk-pytorch.svg) ](https://pypi.python.org/pypi/itk-pytorch)
 

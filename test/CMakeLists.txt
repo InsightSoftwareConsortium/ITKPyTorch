@@ -1,16 +1,16 @@
 itk_module_test()
 
 set(PyTorchTests
-  itkPyTorchImageToImageFilterTest.cxx
+  itkPyTorchImageTest.cxx
   )
 
 CreateTestDriver(PyTorch "${PyTorch-Test_LIBRARIES}" "${PyTorchTests}")
 
-itk_add_test(NAME itkPyTorchImageToImageFilterTest
+itk_add_test(NAME itkPyTorchImageTest
   COMMAND PyTorchTestDriver
     --compare
-    DATA{Baseline/itkPyTorchImageToImageFilterTestOutput.mha}
-    ${ITK_TEST_OUTPUT_DIR}/itkPyTorchImageToImageFilterTestOutput.mha
-  itkPyTorchImageToImageFilterTest
-    ${ITK_TEST_OUTPUT_DIR}/itkPyTorchImageToImageFilterTestOutput.mha
+    DATA{Baseline/itkPyTorchImageTestOutput.mha}
+    ${ITK_TEST_OUTPUT_DIR}/itkPyTorchImageTestOutput.mha
+  itkPyTorchImageTest
+    ${ITK_TEST_OUTPUT_DIR}/itkPyTorchImageTestOutput.mha
   )

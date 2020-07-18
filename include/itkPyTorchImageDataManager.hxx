@@ -27,7 +27,8 @@ namespace itk
 {
 template< typename TImage >
 void
-PyTorchImageDataManager< TImage >::SetImagePointer( typename ImageType::Pointer img )
+PyTorchImageDataManager< TImage >
+::SetImagePointer( typename ImageType::Pointer img )
 {
   m_Image = img;
 }
@@ -36,8 +37,10 @@ PyTorchImageDataManager< TImage >::SetImagePointer( typename ImageType::Pointer 
 //------------------------------------------------------------------------------
 template< typename TImage >
 void
-PyTorchImageDataManager< TImage >::Allocate()
+PyTorchImageDataManager< TImage >
+::Allocate()
 {
+  // Make use of m_Size
   // Write me!!!
   m_IsCPUBufferAllocated = true;
   m_IsGPUBufferAllocated = true;
@@ -47,7 +50,8 @@ PyTorchImageDataManager< TImage >::Allocate()
 //------------------------------------------------------------------------------
 template< typename TImage >
 void
-PyTorchImageDataManager< TImage >::Initialize()
+PyTorchImageDataManager< TImage >
+::Initialize()
 {
   // Write me!!!  Release GPU memory if it exists!!!
   Superclass::Initialize();
@@ -57,7 +61,18 @@ PyTorchImageDataManager< TImage >::Initialize()
 //------------------------------------------------------------------------------
 template< typename TImage >
 void
-PyTorchImageDataManager< TImage >::SetCPUBufferPointer( void *ptr )
+PyTorchImageDataManager< TImage >
+::SetPyTorchSize( const std::vector< typename ImageType::SizeValueType > &pyTorchSize )
+{
+  m_Size = pyTorchSize;
+}
+
+
+//------------------------------------------------------------------------------
+template< typename TImage >
+void
+PyTorchImageDataManager< TImage >
+::SetCPUBufferPointer( void *ptr )
 {
   // Write me!!!
 }
@@ -66,9 +81,10 @@ PyTorchImageDataManager< TImage >::SetCPUBufferPointer( void *ptr )
 //------------------------------------------------------------------------------
 template< typename TImage >
 void
-PyTorchImageDataManager< TImage >::UpdateCPUBuffer()
+PyTorchImageDataManager< TImage >
+::UpdateCPUBuffer()
 {
-  if( this->m_CPUBufferLock )
+  if( m_IsCPUBufferLocked )
     {
     return;
     }
@@ -81,22 +97,26 @@ PyTorchImageDataManager< TImage >::UpdateCPUBuffer()
     TimeStamp     cpu_time_stamp = m_Image->GetTimeStamp();
     unsigned long cpu_time       = cpu_time_stamp.GetMTime();
 
-    /* Why we check dirty flag and time stamp together?
+    /* Why we check stale flag and time stamp together?
     * Because existing CPU image filters do not use pixel/buffer
-    * access function in PyTorchImage and therefore dirty flag is not
+    * access function in PyTorchImage and therefore stale flag is not
     * correctly managed. Therefore, we check the time stamp of
     * CPU and GPU data as well
     */
-    if( ( m_IsCPUBufferDirty ||( gpu_time > cpu_time ) ) && m_IsGPUBufferAllocated && m_IsCPUBufferAllocated )
+    if( ( m_IsCPUBufferStale || gpu_time > cpu_time ) && m_IsGPUBufferAllocated && m_IsCPUBufferAllocated )
       {
-      // Update CPU Buffer.  Does this change the location of the CPU data?!!!
+      // Where is CPU buffer?
+      const ValueType *data_ptr = m_CPUTensor.data_ptr< ValueType >();
+      // Update CPU Buffer.
       m_CPUTensor = m_GPUTensor.to(at::kCPU);
+      // If memory moves then objects with the old pointer will fail.
+      itkAssertOrThrowMacro(data_ptr == m_CPUTensor.data_ptr< ValueType >(), "Tensor moved within CPU memory");
 
       m_Image->Modified();
       this->SetTimeStamp( m_Image->GetTimeStamp() );
 
-      m_IsCPUBufferDirty = false;
-      m_IsGPUBufferDirty = false;
+      m_IsCPUBufferStale = false;
+      m_IsGPUBufferStale = false;
       }
     }
 }
@@ -105,9 +125,10 @@ PyTorchImageDataManager< TImage >::UpdateCPUBuffer()
 //------------------------------------------------------------------------------
 template< typename TImage >
 void
-PyTorchImageDataManager< TImage >::UpdateGPUBuffer()
+PyTorchImageDataManager< TImage >
+::UpdateGPUBuffer()
 {
-  if( this->m_GPUBufferLock )
+  if( m_IsGPUBufferLocked )
     {
     return;
     }
@@ -120,21 +141,21 @@ PyTorchImageDataManager< TImage >::UpdateGPUBuffer()
     TimeStamp     cpu_time_stamp = m_Image->GetTimeStamp();
     unsigned long cpu_time       = m_Image->GetMTime();
 
-    /* Why we check dirty flag and time stamp together?
+    /* Why we check stale flag and time stamp together?
     * Because existing CPU image filters do not use pixel/buffer
-    * access function in PyTorchImage and therefore dirty flag is not
+    * access function in PyTorchImage and therefore stale flag is not
     * correctly managed. Therefore, we check the time stamp of
     * CPU and GPU data as well
     */
-    if( ( m_IsGPUBufferDirty ||( gpu_time< cpu_time ) ) && m_IsCPUBufferAllocated && m_IsGPUBufferAllocated )
+    if( ( m_IsGPUBufferStale || gpu_time < cpu_time ) && m_IsCPUBufferAllocated && m_IsGPUBufferAllocated )
       {
       // Update GPU Buffer
       m_GPUTensor = m_CPUTensor.to(at::kCUDA);
 
       this->SetTimeStamp( cpu_time_stamp );
 
-      m_IsCPUBufferDirty = false;
-      m_IsGPUBufferDirty = false;
+      m_IsCPUBufferStale = false;
+      m_IsGPUBufferStale = false;
       }
     }
 }
@@ -143,7 +164,8 @@ PyTorchImageDataManager< TImage >::UpdateGPUBuffer()
 //------------------------------------------------------------------------------
 template< typename TImage >
 void
-PyTorchImageDataManager< TImage >::Graft( const PyTorchImageDataManager *data )
+PyTorchImageDataManager< TImage >
+::Graft( const PyTorchImageDataManager *data )
 {
   // std::cout << "GPU timestamp : " << this->GetMTime() << ", CPU timestamp : " << m_Image->GetMTime() << std::endl;
 
