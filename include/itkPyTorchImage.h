@@ -42,7 +42,7 @@ namespace itk
  * \ingroup ITKPyTorchCommon
  */
 template< typename TPixel, unsigned int VImageDimension = 2 >
-class PyTorchImage : public Image< TPixel, VImageDimension >
+class ITK_TEMPLATE_EXPORT PyTorchImage : public Image< TPixel, VImageDimension >
 {
 public:
   ITK_DISALLOW_COPY_AND_ASSIGN( PyTorchImage );
@@ -77,8 +77,10 @@ public:
   // NeighborhoodAccessorFunctorType;
 
   // For the default case that the number of vector components is not determined at compile time:
-  template< class... >
-  using myVoid_t = void;
+  // We define our own void_t because it is C++-17; we do it in a way that works even for C++14.
+  template< typename... Ts > struct myMake_void { typedef void type; };
+  template< typename... Ts > using myVoid_t = typename myMake_void< Ts... >::type;
+
   template< typename TPixelType, typename = void >
   struct PixelHelper
     {
@@ -137,10 +139,9 @@ public:
     using PixelTypeIsVectorType = int;
     static PixelType pixelInstance( unsigned numberOfComponents ) { return PixelType {}; }
     };
-  using ValueType = typename PixelHelper< PixelType >::ValueType;
 
+  using ValueType = typename PixelHelper< PixelType >::ValueType;
   static constexpr unsigned int ImageDimension = VImageDimension;
-  static constexpr at::ScalarType PyTorchValueType = c10::impl::CPPTypeToScalarType< ValueType >::value;
   static constexpr auto pixelInstance = PixelHelper< PixelType >::pixelInstance;
 
   // A pixel value may be a basic type (integer, real), or a class (RGB, RGBA, Vector, CovariantVector) whose value
@@ -149,7 +150,6 @@ public:
   template< typename TPixelType, typename = void >
   struct DimensionHelper
     {
-    using PixelType = TPixelType;
     };
   // For the case that the TPixelType is known by PixelHelper to be a scalar type:
   template< typename TPixelType >
@@ -157,7 +157,8 @@ public:
     {
     using PixelType = TPixelType;
     using DeepScalarType = PixelType;
-    static void AppendSizes( std::vector< SizeValueType > &size ) {/* Nothing to append */}
+    static constexpr unsigned int PyTorchDimension = 0;
+    static void AppendSizes( std::vector< int64_t > &size ) {/* Nothing to append */}
     };
   // For the case that the TPixelType is known by PixelHelper to be a vector type:
   template< typename TPixelType >
@@ -165,7 +166,8 @@ public:
     {
     using PixelType = TPixelType;
     using DeepScalarType = typename DimensionHelper< typename PixelHelper< PixelType >::ValueType >::DeepScalarType;
-    static void AppendSizes( std::vector< SizeValueType > &size )
+    static constexpr unsigned int PyTorchDimension = 1 + DimensionHelper< typename PixelHelper< PixelType >::ValueType >::PyTorchDimension;
+    static void AppendSizes( std::vector< int64_t > &size )
       {
       size.push_back( PixelHelper< PixelType >::NumberOfComponents );
       // Recurse
@@ -173,6 +175,8 @@ public:
       }
     };
   using DeepScalarType = typename DimensionHelper< PixelType >::DeepScalarType;
+  static constexpr at::ScalarType PyTorchValueType = c10::impl::CPPTypeToScalarType< DeepScalarType >::value;
+  static constexpr unsigned int PyTorchDimension = ImageDimension + DimensionHelper< PixelType >::PyTorchDimension;
 
   /** Allocate CPU and GPU memory space */
   virtual void Allocate( bool initialize = false ) override;
@@ -181,17 +185,17 @@ public:
 
   virtual void Initialize() override;
 
-  virtual void FillBuffer( const TPixel &value ) /* `override` fails because not virtual in itkImage!!! */;
+  void FillBuffer( const TPixel &value );
 
-  virtual void SetPixel( const IndexType &index, const TPixel &value )  /* `override` fails because not virtual in itkImage!!! */;;
+  void SetPixel( const IndexType &index, const TPixel &value );
 
-  virtual const TPixel &GetPixel( const IndexType &index ) const  /* `override` fails because not virtual in itkImage!!! */;;
+  const TPixel &GetPixel( const IndexType &index ) const;
 
-  virtual TPixel &GetPixel( const IndexType &index )  /* `override` fails because not virtual in itkImage!!! */;;
+  TPixel &GetPixel( const IndexType &index );
 
-  virtual const TPixel &operator[]( const IndexType &index ) const  /* `override` fails because not virtual in itkImage!!! */;;
+  const TPixel &operator[]( const IndexType &index ) const;
 
-  virtual TPixel &operator[]( const IndexType &index )  /* `override` fails because not virtual in itkImage!!! */;;
+  TPixel &operator[]( const IndexType &index );
 
   /** Explicit synchronize CPU/GPU buffers */
   virtual void UpdateBuffers();
@@ -207,7 +211,7 @@ public:
   virtual const TPixel *GetBufferPointer() const override;
 
   /** Return the Pixel Accessor object */
-  virtual AccessorType GetPixelAccessor()  /* `override` fails because not virtual in itkImage!!! */
+  AccessorType GetPixelAccessor()
   {
     m_DataManager->SetGPUBufferStale();
     return Superclass::GetPixelAccessor();
@@ -215,7 +219,7 @@ public:
 
 
   /** Return the Pixel Accesor object */
-  virtual const AccessorType GetPixelAccessor() const  /* `override` fails because not virtual in itkImage!!! */
+  const AccessorType GetPixelAccessor() const
   {
     m_DataManager->UpdateCPUBuffer();
     return Superclass::GetPixelAccessor();
@@ -223,7 +227,7 @@ public:
 
 
   /** Return the NeighborhoodAccessor functor */
-  virtual NeighborhoodAccessorFunctorType GetNeighborhoodAccessor()  /* `override` fails because not virtual in itkImage!!! */
+  NeighborhoodAccessorFunctorType GetNeighborhoodAccessor()
   {
     m_DataManager->SetGPUBufferStale();
     return NeighborhoodAccessorFunctorType();
@@ -231,24 +235,24 @@ public:
 
 
   /** Return the NeighborhoodAccessor functor */
-  virtual const NeighborhoodAccessorFunctorType GetNeighborhoodAccessor() const  /* `override` fails because not virtual in itkImage!!! */
+  const NeighborhoodAccessorFunctorType GetNeighborhoodAccessor() const
   {
     m_DataManager->UpdateCPUBuffer();
     return NeighborhoodAccessorFunctorType();
   }
 
 
-  virtual void SetPixelContainer( PixelContainer *container )  /* `override` fails because not virtual in itkImage!!! */;
+  void SetPixelContainer( PixelContainer *container );
 
   /** Return a pointer to the container. */
-  virtual PixelContainer *GetPixelContainer()  /* `override` fails because not virtual in itkImage!!! */
+  PixelContainer *GetPixelContainer()
   {
     m_DataManager->SetGPUBufferStale();
     return Superclass::GetPixelContainer();
   }
 
 
-  virtual const PixelContainer *GetPixelContainer() const  /* `override` fails because not virtual in itkImage!!! */
+  const PixelContainer *GetPixelContainer() const
   {
     m_DataManager->UpdateCPUBuffer();
     return Superclass::GetPixelContainer();
@@ -304,14 +308,14 @@ private:
 
 //------------------------------------------------------------------------------
 template< typename T >
-class PyTorchTraits
+class ITK_TEMPLATE_EXPORT PyTorchTraits
 {
 public:
   using Type = T;
 };
 
 template< typename TPixelType, unsigned int NDimension >
-class PyTorchTraits< Image< TPixelType, NDimension > >
+class ITK_TEMPLATE_EXPORT PyTorchTraits< Image< TPixelType, NDimension > >
 {
 public:
   using Type = PyTorchImage< TPixelType, NDimension >;

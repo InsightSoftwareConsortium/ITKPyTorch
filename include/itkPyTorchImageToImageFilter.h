@@ -34,7 +34,7 @@ namespace itk
  *
  */
 template< typename TInputImage, typename TOutputImage >
-class PyTorchImageToImageFilter : public ImageToImageFilter< TInputImage, TOutputImage >
+class ITK_TEMPLATE_EXPORT PyTorchImageToImageFilter : public ImageToImageFilter< TInputImage, TOutputImage >
 {
 public:
   ITK_DISALLOW_COPY_AND_ASSIGN( PyTorchImageToImageFilter );

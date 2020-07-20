@@ -100,8 +100,6 @@ int itkPyTorchImageTest(int argc, char *argv[])
     using ImageType = itk::PyTorchImage< double, 1 >;
     ImageType::Pointer image = ImageType::New();
   }
-#if 0
-// Make me compile!!!
   {
     using ImageType = itk::PyTorchImage< itk::RGBPixel< short >, 3 >;
     ImageType::Pointer image = ImageType::New();
@@ -122,7 +120,12 @@ int itkPyTorchImageTest(int argc, char *argv[])
     using ImageType = itk::PyTorchImage< itk::Vector< itk::Vector< unsigned char, 2 >, 3 >, 4 >;
     ImageType::Pointer image = ImageType::New();
   }
-#endif
+
+  {
+    using ImageType = itk::PyTorchImage< itk::CovariantVector< itk::Vector< itk::RGBAPixel< unsigned char >, 2 >, 3 >, 4 >;
+    ImageType::Pointer image = ImageType::New();
+  }
+
   using ImageType = itk::PyTorchImage< float, 2 >;
   ImageType::Pointer image = ImageType::New();
 

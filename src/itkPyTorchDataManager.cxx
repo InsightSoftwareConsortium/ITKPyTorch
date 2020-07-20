@@ -54,7 +54,6 @@ PyTorchDataManager::SetGPUStaleFlag( bool isStale )
 void
 PyTorchDataManager::SetGPUBufferStale()
 {
-  // Why do we UpdateCPUBuffer before marking the GPUBuffer as stale?!!!
   this->UpdateCPUBuffer();
   m_IsGPUBufferStale = true;
 }
@@ -64,7 +63,6 @@ PyTorchDataManager::SetGPUBufferStale()
 void
 PyTorchDataManager::SetCPUBufferStale()
 {
-  // Why do we UpdateGPUBuffer before marking the CPUBuffer as stale?!!!
   this->UpdateGPUBuffer();
   m_IsCPUBufferStale = true;
 }
@@ -83,7 +81,8 @@ PyTorchDataManager::Update()
   this->UpdateGPUBuffer();
   this->UpdateCPUBuffer();
 
-  m_IsGPUBufferStale = m_IsCPUBufferStale = false;
+  m_IsGPUBufferStale = false;
+  m_IsCPUBufferStale = false;
 
   return true;
 }

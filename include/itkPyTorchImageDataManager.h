@@ -37,10 +37,10 @@ namespace itk
  * \ingroup ITKPyTorchCommon
  */
 template< typename TPixel, unsigned int NDimension >
-class PyTorchImage;
+class ITK_FORWARD_EXPORT PyTorchImage;
 
 template< typename TImage >
-class PyTorchImageDataManager : public PyTorchDataManager
+class ITK_TEMPLATE_EXPORT PyTorchImageDataManager : public PyTorchDataManager
 {
 public:
 
@@ -52,6 +52,7 @@ public:
   friend ImageType;
   using PixelType = typename ImageType::PixelType;
   using ValueType = typename ImageType::ValueType;
+  using DeepScalarType = typename ImageType::DeepScalarType;
 
   itkNewMacro( Self );
   itkTypeMacro( PyTorchImageDataManager, PyTorchDataManager );
@@ -60,7 +61,7 @@ public:
 
   virtual void Initialize();
 
-  virtual void SetPyTorchSize( const std::vector< typename ImageType::SizeValueType > &pyTorchSize );
+  virtual void SetPyTorchSize( const std::vector< int64_t > &pyTorchSize );
 
   virtual void SetCPUBufferPointer( void *ptr );
 
@@ -79,17 +80,18 @@ protected:
   /** Storage for CPU and GPU tensors is type specific, so we have it here instead of in the base class PyTorchDataManager */
   torch::Tensor m_CPUTensor;
   torch::Tensor m_GPUTensor;
-  virtual ValueType *GetCPUBufferPointer()
+
+  virtual DeepScalarType *GetCPUBufferPointer()
     {
-    return m_CPUTensor.data_ptr< ValueType >();
+    return m_CPUTensor.data_ptr< DeepScalarType >();
     }
-  virtual const ValueType *GetCPUBufferPointer() const
+  virtual const DeepScalarType *GetCPUBufferPointer() const
     {
-    return m_CPUTensor.data_ptr< ValueType >();
+    return m_CPUTensor.data_ptr< DeepScalarType >();
     }
 
   PyTorchImageDataManager() { m_Image = nullptr; }
-  virtual ~PyTorchImageDataManager() {} // Will torch::Tensor destructors free memory?!!!
+  virtual ~PyTorchImageDataManager() {}
 
 private:
 
@@ -98,7 +100,7 @@ private:
 
   typename ImageType::Pointer m_Image;
 
-  std::vector< SizeValueType > m_Size;
+  std::vector< int64_t > m_Size;
 };
 
 } // namespace itk

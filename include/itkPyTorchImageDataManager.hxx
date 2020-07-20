@@ -40,10 +40,17 @@ void
 PyTorchImageDataManager< TImage >
 ::Allocate()
 {
-  // Make use of m_Size
-  // Write me!!!
-  m_IsCPUBufferAllocated = true;
-  m_IsGPUBufferAllocated = true;
+  // Allocate memory for the GPU here.
+  try
+    {
+    c10::TensorOptions options = torch::TensorOptions().dtype( ImageType::PyTorchValueType ).layout( torch::kStrided ).device( torch::kCUDA ).requires_grad( false );
+    m_GPUTensor = torch::empty( m_Size, options );
+    m_IsGPUBufferAllocated = true;
+    }
+  catch (...)
+    {
+    // What if there is no GPU?!!!
+    }
 }
 
 
@@ -53,7 +60,16 @@ void
 PyTorchImageDataManager< TImage >
 ::Initialize()
 {
-  // Write me!!!  Release GPU memory if it exists!!!
+  try
+    {
+    // Free up GPUTensor memory by replacing it with a very small tensor.  If there is no GPU this will fail.
+    c10::TensorOptions options =
+      torch::TensorOptions().dtype(torch::kFloat16).layout(torch::kStrided).device(torch::kCUDA).requires_grad(false);
+    m_GPUTensor = torch::empty( { 1 }, options );
+    m_IsGPUBufferAllocated = false;
+    }
+  catch (...) {}
+
   Superclass::Initialize();
 }
 
@@ -62,7 +78,7 @@ PyTorchImageDataManager< TImage >
 template< typename TImage >
 void
 PyTorchImageDataManager< TImage >
-::SetPyTorchSize( const std::vector< typename ImageType::SizeValueType > &pyTorchSize )
+::SetPyTorchSize( const std::vector< int64_t > &pyTorchSize )
 {
   m_Size = pyTorchSize;
 }
@@ -74,7 +90,10 @@ void
 PyTorchImageDataManager< TImage >
 ::SetCPUBufferPointer( void *ptr )
 {
-  // Write me!!!
+  // How do we know that m_Size is set correctly?!!!
+  c10::TensorOptions options = torch::TensorOptions().dtype( ImageType::PyTorchValueType ).layout( torch::kStrided ).device( torch::kCPU ).requires_grad( false );
+  m_CPUTensor = torch::from_blob( reinterpret_cast< DeepScalarType * >( ptr ), m_Size, options );
+  m_IsCPUBufferAllocated = true;
 }
 
 
@@ -93,9 +112,9 @@ PyTorchImageDataManager< TImage >
     {
     MutexHolderType holder( m_Mutex );
 
-    unsigned long gpu_time       = this->GetMTime();
-    TimeStamp     cpu_time_stamp = m_Image->GetTimeStamp();
-    unsigned long cpu_time       = cpu_time_stamp.GetMTime();
+    ModifiedTimeType gpu_time       = this->GetMTime();
+    TimeStamp        cpu_time_stamp = m_Image->GetTimeStamp();
+    ModifiedTimeType cpu_time       = cpu_time_stamp.GetMTime();
 
     /* Why we check stale flag and time stamp together?
     * Because existing CPU image filters do not use pixel/buffer
@@ -106,11 +125,11 @@ PyTorchImageDataManager< TImage >
     if( ( m_IsCPUBufferStale || gpu_time > cpu_time ) && m_IsGPUBufferAllocated && m_IsCPUBufferAllocated )
       {
       // Where is CPU buffer?
-      const ValueType *data_ptr = m_CPUTensor.data_ptr< ValueType >();
+      const DeepScalarType *data_ptr = m_CPUTensor.data_ptr< DeepScalarType >();
       // Update CPU Buffer.
       m_CPUTensor = m_GPUTensor.to(at::kCPU);
       // If memory moves then objects with the old pointer will fail.
-      itkAssertOrThrowMacro(data_ptr == m_CPUTensor.data_ptr< ValueType >(), "Tensor moved within CPU memory");
+      itkAssertOrThrowMacro(data_ptr == m_CPUTensor.data_ptr< DeepScalarType >(), "Tensor moved within CPU memory");
 
       m_Image->Modified();
       this->SetTimeStamp( m_Image->GetTimeStamp() );
@@ -137,9 +156,9 @@ PyTorchImageDataManager< TImage >
     {
     MutexHolderType holder( m_Mutex );
 
-    unsigned long gpu_time       = this->GetMTime();
-    TimeStamp     cpu_time_stamp = m_Image->GetTimeStamp();
-    unsigned long cpu_time       = m_Image->GetMTime();
+    ModifiedTimeType gpu_time       = this->GetMTime();
+    TimeStamp        cpu_time_stamp = m_Image->GetTimeStamp();
+    ModifiedTimeType cpu_time       = m_Image->GetMTime();
 
     /* Why we check stale flag and time stamp together?
     * Because existing CPU image filters do not use pixel/buffer

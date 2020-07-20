@@ -23,9 +23,6 @@
 
 namespace itk
 {
-//
-// Constructor
-//
 template< typename TPixel, unsigned int VImageDimension >
 PyTorchImage< TPixel, VImageDimension >
 ::PyTorchImage()
@@ -57,11 +54,13 @@ void
 PyTorchImage< TPixel, VImageDimension >
 ::AllocateGPU()
 {
+  // Much of the same work is done in Initialize.  Where should it be done?!!!
+
   if( !m_Graft )
   {
     // allocate GPU memory
     const SizeType &bufferSize = this->GetBufferedRegion().GetSize();
-    std::vector< SizeValueType > pyTorchSize;
+    std::vector< int64_t > pyTorchSize( PyTorchDimension );
     for (SizeValueType i = 0; i < ImageDimension; ++i)
       {
       pyTorchSize.push_back( bufferSize[i] );
@@ -91,7 +90,7 @@ PyTorchImage< TPixel, VImageDimension >
   m_DataManager->Initialize();
 
   const SizeType &bufferSize = this->GetBufferedRegion().GetSize();
-  std::vector< SizeValueType > pyTorchSize;
+  std::vector< int64_t > pyTorchSize ( PyTorchDimension );
   for (SizeValueType i = 0; i < ImageDimension; ++i)
     {
     pyTorchSize.push_back( bufferSize[i] );
@@ -276,23 +275,23 @@ PyTorchImage< TPixel, VImageDimension >
   Superclass::Graft( data );
 
   if( data )
-  {
+    {
     // Attempt to cast data to an PyTorchImageDataManagerType
     using PyTorchImageDataManagerType = PyTorchImageDataManager< PyTorchImage >;
-    const PyTorchImageDataManagerType *ptr;
+    const PyTorchImageDataManagerType *ptr = nullptr;
 
     try
-    {
+      {
       // Pass regular pointer to Graft() instead of smart pointer due to type casting problem
-    ptr = dynamic_cast< const PyTorchImageDataManagerType * >( ( ( PyTorchImage * )data )->m_DataManager.GetPointer() );
-    }
+      ptr = dynamic_cast< const PyTorchImageDataManagerType * >( ( ( PyTorchImage * )data )->m_DataManager.GetPointer() );
+      }
     catch( ... )
-    {
+      {
       return;
-    }
+      }
 
     if( ptr )
-    {
+      {
       // Debug
       // std::cout << "GPU timestamp : " << m_DataManager->GetMTime() << ", CPU timestamp : " << this->GetMTime() << std::endl;
 
@@ -308,15 +307,15 @@ PyTorchImage< TPixel, VImageDimension >
       // Debug
       //std::cout << "GPU timestamp : " << m_DataManager->GetMTime() << ", CPU
       // timestamp : " << this->GetMTime() << std::endl;
-    }
+      }
     else
-    {
+      {
       // pointer could not be cast back down
       itkExceptionMacro(  << "itk::PyTorchImage::Graft() cannot cast "
         << typeid( data ).name() << " to "
         << typeid( const PyTorchImageDataManagerType * ).name() );
+      }
     }
-  }
 }
 
 
@@ -332,14 +331,8 @@ PyTorchImage< TPixel, VImageDimension >
 }
 
 
-// Some compilers want the static constexpr values to be defined, not merely declared.
-template< typename TPixel, unsigned int VImageDimension >
-template< typename TPixelType, typename TExtra >
-constexpr typename PyTorchImage< TPixel, VImageDimension >::SizeValueType
-PyTorchImage< TPixel, VImageDimension >
-::PixelHelper< TPixelType, TExtra >
-::NumberOfComponents;
-
+// Some compilers require that static constexpr members that are initialized when declared must nonetheless also be
+// defined.
 template< typename TPixel, unsigned int VImageDimension >
 constexpr unsigned int
 PyTorchImage< TPixel, VImageDimension >
@@ -349,6 +342,11 @@ template< typename TPixel, unsigned int VImageDimension >
 constexpr at::ScalarType
 PyTorchImage< TPixel, VImageDimension >
 ::PyTorchValueType;
+
+template< typename TPixel, unsigned int VImageDimension >
+constexpr unsigned int
+PyTorchImage< TPixel, VImageDimension >
+::PyTorchDimension;
 
 } // namespace itk
 
