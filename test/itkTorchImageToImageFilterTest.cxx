@@ -16,7 +16,7 @@
  *
  *=========================================================================*/
 
-#include "itkPyTorchImageToImageFilter.h"
+#include "itkTorchImageToImageFilter.h"
 
 #include "itkCommand.h"
 #include "itkImageFileWriter.h"
@@ -52,7 +52,7 @@ public:
 };
 } // namespace
 
-int itkPyTorchImageToImageFilterTest(int argc, char *argv[])
+int itkTorchImageToImageFilterTest(int argc, char *argv[])
 {
   if (argc < 2)
   {
@@ -68,10 +68,10 @@ int itkPyTorchImageToImageFilterTest(int argc, char *argv[])
   using PixelType = float;
   using ImageType = itk::Image<PixelType, Dimension>;
 
-  using FilterType = itk::PyTorchImageToImageFilter<ImageType, ImageType>;
+  using FilterType = itk::TorchImageToImageFilter<ImageType, ImageType>;
   FilterType::Pointer filter = FilterType::New();
 
-  ITK_EXERCISE_BASIC_OBJECT_METHODS(filter, PyTorchImageToImageFilter, ImageToImageFilter);
+  ITK_EXERCISE_BASIC_OBJECT_METHODS(filter, TorchImageToImageFilter, ImageToImageFilter);
 
   // Create input image to avoid test dependencies.
   ImageType::SizeType size;

@@ -16,18 +16,18 @@
  *
  *=========================================================================*/
 
-#ifndef itkPyTorchImage_hxx
-#define itkPyTorchImage_hxx
+#ifndef itkTorchImage_hxx
+#define itkTorchImage_hxx
 
-#include "itkPyTorchImage.h"
+#include "itkTorchImage.h"
 
 namespace itk
 {
 template< typename TPixel, unsigned int VImageDimension >
-PyTorchImage< TPixel, VImageDimension >
-::PyTorchImage()
+TorchImage< TPixel, VImageDimension >
+::TorchImage()
 {
-  m_DataManager = PyTorchImageDataManager< PyTorchImage< TPixel, VImageDimension > >::New();
+  m_DataManager = TorchImageDataManager< TorchImage< TPixel, VImageDimension > >::New();
   m_DataManager->SetTimeStamp( this->GetTimeStamp() );
   m_Graft = false;
 }
@@ -36,7 +36,7 @@ PyTorchImage< TPixel, VImageDimension >
 //------------------------------------------------------------------------------
 template< typename TPixel, unsigned int VImageDimension >
 void
-PyTorchImage< TPixel, VImageDimension >
+TorchImage< TPixel, VImageDimension >
 ::Allocate( bool initialize )
 {
   // allocate CPU memory - calling Allocate() in superclass
@@ -51,7 +51,7 @@ PyTorchImage< TPixel, VImageDimension >
 //------------------------------------------------------------------------------
 template< typename TPixel, unsigned int VImageDimension >
 void
-PyTorchImage< TPixel, VImageDimension >
+TorchImage< TPixel, VImageDimension >
 ::AllocateGPU()
 {
   // Much of the same work is done in Initialize.  Where should it be done?!!!
@@ -60,13 +60,13 @@ PyTorchImage< TPixel, VImageDimension >
   {
     // allocate GPU memory
     const SizeType &bufferSize = this->GetBufferedRegion().GetSize();
-    std::vector< int64_t > pyTorchSize( PyTorchDimension );
+    std::vector< int64_t > torchSize( TorchDimension );
     for (SizeValueType i = 0; i < ImageDimension; ++i)
       {
-      pyTorchSize.push_back( bufferSize[i] );
+      torchSize.push_back( bufferSize[i] );
       }
-    DimensionHelper< PixelType >::AppendSizes( pyTorchSize );
-    m_DataManager->SetPyTorchSize( pyTorchSize );
+    DimensionHelper< PixelType >::AppendSizes( torchSize );
+    m_DataManager->SetTorchSize( torchSize );
     m_DataManager->SetImagePointer( this );
     m_DataManager->SetCPUBufferPointer( Superclass::GetBufferPointer() );
     m_DataManager->Allocate();
@@ -80,7 +80,7 @@ PyTorchImage< TPixel, VImageDimension >
 //------------------------------------------------------------------------------
 template< typename TPixel, unsigned int VImageDimension >
 void
-PyTorchImage< TPixel, VImageDimension >
+TorchImage< TPixel, VImageDimension >
 ::Initialize()
 {
   // CPU image initialize
@@ -90,13 +90,13 @@ PyTorchImage< TPixel, VImageDimension >
   m_DataManager->Initialize();
 
   const SizeType &bufferSize = this->GetBufferedRegion().GetSize();
-  std::vector< int64_t > pyTorchSize ( PyTorchDimension );
+  std::vector< int64_t > torchSize ( TorchDimension );
   for (SizeValueType i = 0; i < ImageDimension; ++i)
     {
-    pyTorchSize.push_back( bufferSize[i] );
+    torchSize.push_back( bufferSize[i] );
     }
-  DimensionHelper< PixelType >::AppendSizes( pyTorchSize );
-  m_DataManager->SetPyTorchSize( pyTorchSize );
+  DimensionHelper< PixelType >::AppendSizes( torchSize );
+  m_DataManager->SetTorchSize( torchSize );
   m_DataManager->SetImagePointer( this );
   m_DataManager->SetCPUBufferPointer( Superclass::GetBufferPointer() );
   m_DataManager->Allocate();
@@ -110,7 +110,7 @@ PyTorchImage< TPixel, VImageDimension >
 //------------------------------------------------------------------------------
 template< typename TPixel, unsigned int VImageDimension >
 void
-PyTorchImage< TPixel, VImageDimension >
+TorchImage< TPixel, VImageDimension >
 ::Modified() const
 {
   Superclass::Modified();
@@ -120,7 +120,7 @@ PyTorchImage< TPixel, VImageDimension >
 //------------------------------------------------------------------------------
 template< typename TPixel, unsigned int VImageDimension >
 void
-PyTorchImage< TPixel, VImageDimension >
+TorchImage< TPixel, VImageDimension >
 ::FillBuffer( const TPixel &value )
 {
   m_DataManager->SetGPUBufferStale();
@@ -131,7 +131,7 @@ PyTorchImage< TPixel, VImageDimension >
 //------------------------------------------------------------------------------
 template< typename TPixel, unsigned int VImageDimension >
 void
-PyTorchImage< TPixel, VImageDimension >
+TorchImage< TPixel, VImageDimension >
 ::SetPixel( const IndexType &index, const TPixel &value )
 {
   m_DataManager->SetGPUBufferStale();
@@ -142,7 +142,7 @@ PyTorchImage< TPixel, VImageDimension >
 //------------------------------------------------------------------------------
 template< typename TPixel, unsigned int VImageDimension >
 const TPixel &
-PyTorchImage< TPixel, VImageDimension >
+TorchImage< TPixel, VImageDimension >
 ::GetPixel( const IndexType &index ) const
 {
   m_DataManager->UpdateCPUBuffer();
@@ -153,7 +153,7 @@ PyTorchImage< TPixel, VImageDimension >
 //------------------------------------------------------------------------------
 template< typename TPixel, unsigned int VImageDimension >
 TPixel &
-PyTorchImage< TPixel, VImageDimension >
+TorchImage< TPixel, VImageDimension >
 ::GetPixel( const IndexType &index )
 {
   /* less conservative version - if you modify pixel value using
@@ -166,7 +166,7 @@ PyTorchImage< TPixel, VImageDimension >
 //------------------------------------------------------------------------------
 template< typename TPixel, unsigned int VImageDimension >
 TPixel &
-PyTorchImage< TPixel, VImageDimension >
+TorchImage< TPixel, VImageDimension >
 ::operator[]( const IndexType &index )
 {
   /* less conservative version - if you modify pixel value using
@@ -179,7 +179,7 @@ PyTorchImage< TPixel, VImageDimension >
 //------------------------------------------------------------------------------
 template< typename TPixel, unsigned int VImageDimension >
 const TPixel &
-PyTorchImage< TPixel, VImageDimension >
+TorchImage< TPixel, VImageDimension >
 ::operator[]( const IndexType &index ) const
 {
   m_DataManager->UpdateCPUBuffer();
@@ -190,7 +190,7 @@ PyTorchImage< TPixel, VImageDimension >
 //------------------------------------------------------------------------------
 template< typename TPixel, unsigned int VImageDimension >
 void
-PyTorchImage< TPixel, VImageDimension >
+TorchImage< TPixel, VImageDimension >
 ::SetPixelContainer( PixelContainer *container )
 {
   Superclass::SetPixelContainer( container );
@@ -203,7 +203,7 @@ PyTorchImage< TPixel, VImageDimension >
 //------------------------------------------------------------------------------
 template< typename TPixel, unsigned int VImageDimension >
 void
-PyTorchImage< TPixel, VImageDimension >
+TorchImage< TPixel, VImageDimension >
 ::UpdateBuffers()
 {
   m_DataManager->UpdateCPUBuffer();
@@ -214,7 +214,7 @@ PyTorchImage< TPixel, VImageDimension >
 //------------------------------------------------------------------------------
 template< typename TPixel, unsigned int VImageDimension >
 void
-PyTorchImage< TPixel, VImageDimension >
+TorchImage< TPixel, VImageDimension >
 ::UpdateCPUBuffer()
 {
   m_DataManager->UpdateCPUBuffer();
@@ -224,7 +224,7 @@ PyTorchImage< TPixel, VImageDimension >
 //------------------------------------------------------------------------------
 template< typename TPixel, unsigned int VImageDimension >
 void
-PyTorchImage< TPixel, VImageDimension >
+TorchImage< TPixel, VImageDimension >
 ::UpdateGPUBuffer()
 {
   m_DataManager->UpdateGPUBuffer();
@@ -234,7 +234,7 @@ PyTorchImage< TPixel, VImageDimension >
 //------------------------------------------------------------------------------
 template< typename TPixel, unsigned int VImageDimension >
 TPixel *
-PyTorchImage< TPixel, VImageDimension >
+TorchImage< TPixel, VImageDimension >
 ::GetBufferPointer()
 {
   /* less conservative version - if you modify pixel value using
@@ -247,7 +247,7 @@ PyTorchImage< TPixel, VImageDimension >
 //------------------------------------------------------------------------------
 template< typename TPixel, unsigned int VImageDimension >
 const TPixel *
-PyTorchImage< TPixel, VImageDimension >
+TorchImage< TPixel, VImageDimension >
 ::GetBufferPointer() const
 {
   m_DataManager->UpdateCPUBuffer();
@@ -258,7 +258,7 @@ PyTorchImage< TPixel, VImageDimension >
 //------------------------------------------------------------------------------
 template< typename TPixel, unsigned int VImageDimension >
 void
-PyTorchImage< TPixel, VImageDimension >
+TorchImage< TPixel, VImageDimension >
 ::GraftITKImage( const DataObject *data )
 {
   Superclass::Graft( data );
@@ -268,7 +268,7 @@ PyTorchImage< TPixel, VImageDimension >
 //------------------------------------------------------------------------------
 template< typename TPixel, unsigned int VImageDimension >
 void
-PyTorchImage< TPixel, VImageDimension >
+TorchImage< TPixel, VImageDimension >
 ::Graft( const DataObject *data )
 {
   // call the superclass' implementation
@@ -276,14 +276,14 @@ PyTorchImage< TPixel, VImageDimension >
 
   if( data )
     {
-    // Attempt to cast data to an PyTorchImageDataManagerType
-    using PyTorchImageDataManagerType = PyTorchImageDataManager< PyTorchImage >;
-    const PyTorchImageDataManagerType *ptr = nullptr;
+    // Attempt to cast data to an TorchImageDataManagerType
+    using TorchImageDataManagerType = TorchImageDataManager< TorchImage >;
+    const TorchImageDataManagerType *ptr = nullptr;
 
     try
       {
       // Pass regular pointer to Graft() instead of smart pointer due to type casting problem
-      ptr = dynamic_cast< const PyTorchImageDataManagerType * >( ( ( PyTorchImage * )data )->m_DataManager.GetPointer() );
+      ptr = dynamic_cast< const TorchImageDataManagerType * >( ( ( TorchImage * )data )->m_DataManager.GetPointer() );
       }
     catch( ... )
       {
@@ -299,7 +299,7 @@ PyTorchImage< TPixel, VImageDimension >
       m_DataManager->SetImagePointer( this );
       m_DataManager->Graft( ptr );
 
-      // Synchronize timestamp of PyTorchImage and PyTorchDataManager
+      // Synchronize timestamp of TorchImage and TorchDataManager
       m_DataManager->SetTimeStamp( this->GetTimeStamp() );
 
       m_Graft = true;
@@ -311,9 +311,9 @@ PyTorchImage< TPixel, VImageDimension >
     else
       {
       // pointer could not be cast back down
-      itkExceptionMacro(  << "itk::PyTorchImage::Graft() cannot cast "
+      itkExceptionMacro(  << "itk::TorchImage::Graft() cannot cast "
         << typeid( data ).name() << " to "
-        << typeid( const PyTorchImageDataManagerType * ).name() );
+        << typeid( const TorchImageDataManagerType * ).name() );
       }
     }
 }
@@ -322,7 +322,7 @@ PyTorchImage< TPixel, VImageDimension >
 //------------------------------------------------------------------------------
 template< typename TPixel, unsigned int VImageDimension >
 void
-PyTorchImage< TPixel, VImageDimension >
+TorchImage< TPixel, VImageDimension >
 ::PrintSelf( std::ostream &os, Indent indent ) const
 {
   Superclass::PrintSelf( os, indent );
@@ -335,18 +335,18 @@ PyTorchImage< TPixel, VImageDimension >
 // defined.
 template< typename TPixel, unsigned int VImageDimension >
 constexpr unsigned int
-PyTorchImage< TPixel, VImageDimension >
+TorchImage< TPixel, VImageDimension >
 ::ImageDimension;
 
 template< typename TPixel, unsigned int VImageDimension >
 constexpr at::ScalarType
-PyTorchImage< TPixel, VImageDimension >
-::PyTorchValueType;
+TorchImage< TPixel, VImageDimension >
+::TorchValueType;
 
 template< typename TPixel, unsigned int VImageDimension >
 constexpr unsigned int
-PyTorchImage< TPixel, VImageDimension >
-::PyTorchDimension;
+TorchImage< TPixel, VImageDimension >
+::TorchDimension;
 
 } // namespace itk
 

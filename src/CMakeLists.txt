@@ -1,5 +1,5 @@
 set(PyTorch_SRCS
-  itkPyTorchDataManager.cxx
+  itkTorchDataManager.cxx
   )
 
 itk_module_add_library(PyTorch ${PyTorch_SRCS})

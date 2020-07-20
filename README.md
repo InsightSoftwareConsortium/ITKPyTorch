@@ -12,7 +12,7 @@ We will set up a demonstration of this using [ Binder ](www.mybinder.org) that a
 
 ### Technical description
 
-The ITK `PyTorchImage< TPixel, VImageDimension >` templated class in C++ is a subclass of the corresponding ITK `Image< TPixel, VImageDimension >` templated class and supports the same pixel types (i.e., integers, real numbers, `RGBPixel`, `RGBAPixel`, `Vector`, and `CovariantVector`) and the same numbers of dimensions.  A `PyTorchImage` can be used in lieu of an `Image` in ITK pipelines but also can be used with filters and transformations that are specialized for `PyTorchImage` objects.  These specialized pipeline steps are executed on a CUDA GPU using the C++ `libTorch` interface.
+The ITK `TorchImage< TPixel, VImageDimension >` templated class in C++ is a subclass of the corresponding ITK `Image< TPixel, VImageDimension >` templated class and supports the same pixel types (i.e., integers, real numbers, `RGBPixel`, `RGBAPixel`, `Vector`, and `CovariantVector`) and the same numbers of dimensions.  A `TorchImage` can be used in lieu of an `Image` in ITK pipelines but also can be used with filters and transformations that are specialized for `TorchImage` objects.  These specialized pipeline steps are executed on a CUDA GPU using the C++ `libTorch` interface.
 
 It is intended that this module enable MONAI intergration.
 

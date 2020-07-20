@@ -16,36 +16,36 @@
  *
  *=========================================================================*/
 
-#ifndef itkPyTorchImageDataManager_h
-#define itkPyTorchImageDataManager_h
+#ifndef itkTorchImageDataManager_h
+#define itkTorchImageDataManager_h
 
 #include <itkObject.h>
 #include <itkTimeStamp.h>
 #include <itkLightObject.h>
 #include <itkObjectFactory.h>
-#include "itkPyTorchImage.h"
-#include "itkPyTorchDataManager.h"
+#include "itkTorchImage.h"
+#include "itkTorchDataManager.h"
 
 namespace itk
 {
 /**
- * \class PyTorchImage Data Management
+ * \class TorchImage Data Management
  *
- * DataManager for PyTorchImage. This class will take care of data synchronization
+ * DataManager for TorchImage. This class will take care of data synchronization
  * between CPU Image and GPU Image.
  *
- * \ingroup ITKPyTorchCommon
+ * \ingroup ITKTorchCommon
  */
 template< typename TPixel, unsigned int NDimension >
-class ITK_FORWARD_EXPORT PyTorchImage;
+class ITK_FORWARD_EXPORT TorchImage;
 
 template< typename TImage >
-class ITK_TEMPLATE_EXPORT PyTorchImageDataManager : public PyTorchDataManager
+class ITK_TEMPLATE_EXPORT TorchImageDataManager : public TorchDataManager
 {
 public:
 
-  using Self = PyTorchImageDataManager;
-  using Superclass = PyTorchDataManager;
+  using Self = TorchImageDataManager;
+  using Superclass = TorchDataManager;
   using Pointer = SmartPointer< Self >;
   using ConstPointer = SmartPointer< const Self >;
   using ImageType = TImage;
@@ -55,13 +55,13 @@ public:
   using DeepScalarType = typename ImageType::DeepScalarType;
 
   itkNewMacro( Self );
-  itkTypeMacro( PyTorchImageDataManager, PyTorchDataManager );
+  itkTypeMacro( TorchImageDataManager, TorchDataManager );
 
   virtual void Allocate();
 
   virtual void Initialize();
 
-  virtual void SetPyTorchSize( const std::vector< int64_t > &pyTorchSize );
+  virtual void SetTorchSize( const std::vector< int64_t > &torchSize );
 
   virtual void SetCPUBufferPointer( void *ptr );
 
@@ -74,10 +74,10 @@ public:
   virtual void UpdateGPUBuffer() override;
 
   /** Grafting GPU Image Data */
-  virtual void Graft( const PyTorchImageDataManager *data );
+  virtual void Graft( const TorchImageDataManager *data );
 
 protected:
-  /** Storage for CPU and GPU tensors is type specific, so we have it here instead of in the base class PyTorchDataManager */
+  /** Storage for CPU and GPU tensors is type specific, so we have it here instead of in the base class TorchDataManager */
   torch::Tensor m_CPUTensor;
   torch::Tensor m_GPUTensor;
 
@@ -90,12 +90,12 @@ protected:
     return m_CPUTensor.data_ptr< DeepScalarType >();
     }
 
-  PyTorchImageDataManager() { m_Image = nullptr; }
-  virtual ~PyTorchImageDataManager() {}
+  TorchImageDataManager() { m_Image = nullptr; }
+  virtual ~TorchImageDataManager() {}
 
 private:
 
-  PyTorchImageDataManager( const Self & );   // purposely not implemented
+  TorchImageDataManager( const Self & );   // purposely not implemented
   Self &operator=( const Self & );           // purposely not implemented
 
   typename ImageType::Pointer m_Image;
@@ -106,7 +106,7 @@ private:
 } // namespace itk
 
 #ifndef ITK_MANUAL_INSTANTIATION
-#include "itkPyTorchImageDataManager.hxx"
+#include "itkTorchImageDataManager.hxx"
 #endif
 
 #endif

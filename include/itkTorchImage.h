@@ -16,12 +16,12 @@
  *
  *=========================================================================*/
 
-#ifndef itkPyTorchImage_h
-#define itkPyTorchImage_h
+#ifndef itkTorchImage_h
+#define itkTorchImage_h
 
 #include <torch/torch.h>
 #include "itkImage.h"
-#include "itkPyTorchImageDataManager.h"
+#include "itkTorchImageDataManager.h"
 #include "itkVersion.h"
 #include "itkObjectFactoryBase.h"
 #include "itkRGBPixel.h"
@@ -31,7 +31,7 @@
 
 namespace itk
 {
-/** \class PyTorchImage
+/** \class TorchImage
  *  \brief Templated n-dimensional image class for the GPU.
  *
  * Derived from itk Image class to use with GPU image filters.
@@ -39,15 +39,15 @@ namespace itk
  * can be used with non-GPU itk filters as well. Memory transfer
  * between CPU and GPU is done automatically and implicitly.
  *
- * \ingroup ITKPyTorchCommon
+ * \ingroup ITKTorchCommon
  */
 template< typename TPixel, unsigned int VImageDimension = 2 >
-class ITK_TEMPLATE_EXPORT PyTorchImage : public Image< TPixel, VImageDimension >
+class ITK_TEMPLATE_EXPORT TorchImage : public Image< TPixel, VImageDimension >
 {
 public:
-  ITK_DISALLOW_COPY_AND_ASSIGN( PyTorchImage );
+  ITK_DISALLOW_COPY_AND_ASSIGN( TorchImage );
 
-  using Self = PyTorchImage;
+  using Self = TorchImage;
   using Superclass = Image< TPixel, VImageDimension >;
   using Pointer = SmartPointer< Self >;
   using ConstPointer = SmartPointer< const Self >;
@@ -55,7 +55,7 @@ public:
 
   itkNewMacro( Self );
 
-  itkTypeMacro( PyTorchImage, Image );
+  itkTypeMacro( TorchImage, Image );
 
   using PixelType = typename Superclass::PixelType;
   using InternalPixelType = typename Superclass::InternalPixelType;
@@ -157,7 +157,7 @@ public:
     {
     using PixelType = TPixelType;
     using DeepScalarType = PixelType;
-    static constexpr unsigned int PyTorchDimension = 0;
+    static constexpr unsigned int TorchDimension = 0;
     static void AppendSizes( std::vector< int64_t > &size ) {/* Nothing to append */}
     };
   // For the case that the TPixelType is known by PixelHelper to be a vector type:
@@ -166,7 +166,7 @@ public:
     {
     using PixelType = TPixelType;
     using DeepScalarType = typename DimensionHelper< typename PixelHelper< PixelType >::ValueType >::DeepScalarType;
-    static constexpr unsigned int PyTorchDimension = 1 + DimensionHelper< typename PixelHelper< PixelType >::ValueType >::PyTorchDimension;
+    static constexpr unsigned int TorchDimension = 1 + DimensionHelper< typename PixelHelper< PixelType >::ValueType >::TorchDimension;
     static void AppendSizes( std::vector< int64_t > &size )
       {
       size.push_back( PixelHelper< PixelType >::NumberOfComponents );
@@ -175,8 +175,8 @@ public:
       }
     };
   using DeepScalarType = typename DimensionHelper< PixelType >::DeepScalarType;
-  static constexpr at::ScalarType PyTorchValueType = c10::impl::CPPTypeToScalarType< DeepScalarType >::value;
-  static constexpr unsigned int PyTorchDimension = ImageDimension + DimensionHelper< PixelType >::PyTorchDimension;
+  static constexpr at::ScalarType TorchValueType = c10::impl::CPPTypeToScalarType< DeepScalarType >::value;
+  static constexpr unsigned int TorchDimension = ImageDimension + DimensionHelper< PixelType >::TorchDimension;
 
   /** Allocate CPU and GPU memory space */
   virtual void Allocate( bool initialize = false ) override;
@@ -278,7 +278,7 @@ public:
   }
 
 
-  /** Graft the data and information from one PyTorchImage to another. */
+  /** Graft the data and information from one TorchImage to another. */
   virtual void Graft( const DataObject *data ) override;
 
   virtual void GraftITKImage( const DataObject *data );
@@ -294,37 +294,37 @@ public:
 
 protected:
 
-  PyTorchImage();
-  virtual ~PyTorchImage() {}
+  TorchImage();
+  virtual ~TorchImage() {}
 
   virtual void PrintSelf( std::ostream &os, Indent indent ) const override;
 
 private:
 
-  typename PyTorchImageDataManager< PyTorchImage >::Pointer m_DataManager;
+  typename TorchImageDataManager< TorchImage >::Pointer m_DataManager;
 
   bool m_Graft;
 };
 
 //------------------------------------------------------------------------------
 template< typename T >
-class ITK_TEMPLATE_EXPORT PyTorchTraits
+class ITK_TEMPLATE_EXPORT TorchTraits
 {
 public:
   using Type = T;
 };
 
 template< typename TPixelType, unsigned int NDimension >
-class ITK_TEMPLATE_EXPORT PyTorchTraits< Image< TPixelType, NDimension > >
+class ITK_TEMPLATE_EXPORT TorchTraits< Image< TPixelType, NDimension > >
 {
 public:
-  using Type = PyTorchImage< TPixelType, NDimension >;
+  using Type = TorchImage< TPixelType, NDimension >;
 };
 
 } // end namespace itk
 
 #ifndef ITK_MANUAL_INSTANTIATION
-#include "itkPyTorchImage.hxx"
+#include "itkTorchImage.hxx"
 #endif
 
 #endif

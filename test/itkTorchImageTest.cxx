@@ -16,7 +16,7 @@
  *
  *=========================================================================*/
 
-#include "itkPyTorchImage.h"
+#include "itkTorchImage.h"
 
 #include "itkCommand.h"
 #include "itkImageFileWriter.h"
@@ -52,7 +52,7 @@ public:
 };
 } // namespace
 
-int itkPyTorchImageTest(int argc, char *argv[])
+int itkTorchImageTest(int argc, char *argv[])
 {
   if (argc < 2)
     {
@@ -69,64 +69,64 @@ int itkPyTorchImageTest(int argc, char *argv[])
   // Signed integer types: 1, 8, 16, 32, 64 bits.
   // Floating point types: 16, 32, 64 bits
   {
-    using ImageType = itk::PyTorchImage< unsigned char, 3 >;
+    using ImageType = itk::TorchImage< unsigned char, 3 >;
     ImageType::Pointer image = ImageType::New();
   }
   {
-    using ImageType = itk::PyTorchImage< bool, 2 >;
+    using ImageType = itk::TorchImage< bool, 2 >;
     ImageType::Pointer image = ImageType::New();
   }
   {
-    using ImageType = itk::PyTorchImage< signed char, 2 >;
+    using ImageType = itk::TorchImage< signed char, 2 >;
     ImageType::Pointer image = ImageType::New();
   }
   {
-    using ImageType = itk::PyTorchImage< short, 1 >;
+    using ImageType = itk::TorchImage< short, 1 >;
     ImageType::Pointer image = ImageType::New();
   }
   {
-    using ImageType = itk::PyTorchImage< int, 1 >;
+    using ImageType = itk::TorchImage< int, 1 >;
     ImageType::Pointer image = ImageType::New();
   }
   {
-    using ImageType = itk::PyTorchImage< long, 1 >;
+    using ImageType = itk::TorchImage< long, 1 >;
     ImageType::Pointer image = ImageType::New();
   }
   {
-    using ImageType = itk::PyTorchImage< long, 1 >;
+    using ImageType = itk::TorchImage< long, 1 >;
     ImageType::Pointer image = ImageType::New();
   }
   {
-    using ImageType = itk::PyTorchImage< double, 1 >;
+    using ImageType = itk::TorchImage< double, 1 >;
     ImageType::Pointer image = ImageType::New();
   }
   {
-    using ImageType = itk::PyTorchImage< itk::RGBPixel< short >, 3 >;
+    using ImageType = itk::TorchImage< itk::RGBPixel< short >, 3 >;
     ImageType::Pointer image = ImageType::New();
   }
   {
-    using ImageType = itk::PyTorchImage< itk::RGBAPixel< short >, 1 >;
+    using ImageType = itk::TorchImage< itk::RGBAPixel< short >, 1 >;
     ImageType::Pointer image = ImageType::New();
   }
   {
-    using ImageType = itk::PyTorchImage< itk::Vector< short, 3 >, 4 >;
+    using ImageType = itk::TorchImage< itk::Vector< short, 3 >, 4 >;
     ImageType::Pointer image = ImageType::New();
   }
   {
-    using ImageType = itk::PyTorchImage< itk::CovariantVector< short, 4 >, 5 >;
+    using ImageType = itk::TorchImage< itk::CovariantVector< short, 4 >, 5 >;
     ImageType::Pointer image = ImageType::New();
   }
   {
-    using ImageType = itk::PyTorchImage< itk::Vector< itk::Vector< unsigned char, 2 >, 3 >, 4 >;
+    using ImageType = itk::TorchImage< itk::Vector< itk::Vector< unsigned char, 2 >, 3 >, 4 >;
     ImageType::Pointer image = ImageType::New();
   }
 
   {
-    using ImageType = itk::PyTorchImage< itk::CovariantVector< itk::Vector< itk::RGBAPixel< unsigned char >, 2 >, 3 >, 4 >;
+    using ImageType = itk::TorchImage< itk::CovariantVector< itk::Vector< itk::RGBAPixel< unsigned char >, 2 >, 3 >, 4 >;
     ImageType::Pointer image = ImageType::New();
   }
 
-  using ImageType = itk::PyTorchImage< float, 2 >;
+  using ImageType = itk::TorchImage< float, 2 >;
   ImageType::Pointer image = ImageType::New();
 
   // Create input image to avoid test dependencies.

@@ -15,10 +15,10 @@
  *  limitations under the License.
  *
  *=========================================================================*/
-#ifndef itkPyTorchImageToImageFilter_hxx
-#define itkPyTorchImageToImageFilter_hxx
+#ifndef itkTorchImageToImageFilter_hxx
+#define itkTorchImageToImageFilter_hxx
 
-#include "itkPyTorchImageToImageFilter.h"
+#include "itkTorchImageToImageFilter.h"
 
 #include "itkImageRegionIterator.h"
 #include "itkImageRegionConstIterator.h"
@@ -27,14 +27,14 @@ namespace itk
 {
 
 template< typename TInputImage, typename TOutputImage >
-PyTorchImageToImageFilter< TInputImage, TOutputImage >
-::PyTorchImageToImageFilter()
+TorchImageToImageFilter< TInputImage, TOutputImage >
+::TorchImageToImageFilter()
 {}
 
 
 template< typename TInputImage, typename TOutputImage >
 void
-PyTorchImageToImageFilter< TInputImage, TOutputImage >
+TorchImageToImageFilter< TInputImage, TOutputImage >
 ::PrintSelf( std::ostream &os, Indent indent ) const
 {
   Superclass::PrintSelf( os, indent );
@@ -43,7 +43,7 @@ PyTorchImageToImageFilter< TInputImage, TOutputImage >
 
 template< typename TInputImage, typename TOutputImage >
 void
-PyTorchImageToImageFilter< TInputImage, TOutputImage >
+TorchImageToImageFilter< TInputImage, TOutputImage >
 ::DynamicThreadedGenerateData( const OutputRegionType &outputRegion )
 {
   OutputImageType *output = this->GetOutput();
@@ -62,4 +62,4 @@ PyTorchImageToImageFilter< TInputImage, TOutputImage >
 
 } // end namespace itk
 
-#endif // itkPyTorchImageToImageFilter_hxx
+#endif // itkTorchImageToImageFilter_hxx

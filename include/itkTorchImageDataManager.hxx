@@ -16,10 +16,10 @@
  *
  *=========================================================================*/
 
-#ifndef itkPyTorchImageDataManager_hxx
-#define itkPyTorchImageDataManager_hxx
+#ifndef itkTorchImageDataManager_hxx
+#define itkTorchImageDataManager_hxx
 
-#include "itkPyTorchImageDataManager.h"
+#include "itkTorchImageDataManager.h"
 
 //#define VERBOSE
 
@@ -27,7 +27,7 @@ namespace itk
 {
 template< typename TImage >
 void
-PyTorchImageDataManager< TImage >
+TorchImageDataManager< TImage >
 ::SetImagePointer( typename ImageType::Pointer img )
 {
   m_Image = img;
@@ -37,13 +37,13 @@ PyTorchImageDataManager< TImage >
 //------------------------------------------------------------------------------
 template< typename TImage >
 void
-PyTorchImageDataManager< TImage >
+TorchImageDataManager< TImage >
 ::Allocate()
 {
   // Allocate memory for the GPU here.
   try
     {
-    c10::TensorOptions options = torch::TensorOptions().dtype( ImageType::PyTorchValueType ).layout( torch::kStrided ).device( torch::kCUDA ).requires_grad( false );
+    c10::TensorOptions options = torch::TensorOptions().dtype( ImageType::TorchValueType ).layout( torch::kStrided ).device( torch::kCUDA ).requires_grad( false );
     m_GPUTensor = torch::empty( m_Size, options );
     m_IsGPUBufferAllocated = true;
     }
@@ -57,7 +57,7 @@ PyTorchImageDataManager< TImage >
 //------------------------------------------------------------------------------
 template< typename TImage >
 void
-PyTorchImageDataManager< TImage >
+TorchImageDataManager< TImage >
 ::Initialize()
 {
   try
@@ -77,21 +77,21 @@ PyTorchImageDataManager< TImage >
 //------------------------------------------------------------------------------
 template< typename TImage >
 void
-PyTorchImageDataManager< TImage >
-::SetPyTorchSize( const std::vector< int64_t > &pyTorchSize )
+TorchImageDataManager< TImage >
+::SetTorchSize( const std::vector< int64_t > &torchSize )
 {
-  m_Size = pyTorchSize;
+  m_Size = torchSize;
 }
 
 
 //------------------------------------------------------------------------------
 template< typename TImage >
 void
-PyTorchImageDataManager< TImage >
+TorchImageDataManager< TImage >
 ::SetCPUBufferPointer( void *ptr )
 {
   // How do we know that m_Size is set correctly?!!!
-  c10::TensorOptions options = torch::TensorOptions().dtype( ImageType::PyTorchValueType ).layout( torch::kStrided ).device( torch::kCPU ).requires_grad( false );
+  c10::TensorOptions options = torch::TensorOptions().dtype( ImageType::TorchValueType ).layout( torch::kStrided ).device( torch::kCPU ).requires_grad( false );
   m_CPUTensor = torch::from_blob( reinterpret_cast< DeepScalarType * >( ptr ), m_Size, options );
   m_IsCPUBufferAllocated = true;
 }
@@ -100,7 +100,7 @@ PyTorchImageDataManager< TImage >
 //------------------------------------------------------------------------------
 template< typename TImage >
 void
-PyTorchImageDataManager< TImage >
+TorchImageDataManager< TImage >
 ::UpdateCPUBuffer()
 {
   if( m_IsCPUBufferLocked )
@@ -118,7 +118,7 @@ PyTorchImageDataManager< TImage >
 
     /* Why we check stale flag and time stamp together?
     * Because existing CPU image filters do not use pixel/buffer
-    * access function in PyTorchImage and therefore stale flag is not
+    * access function in TorchImage and therefore stale flag is not
     * correctly managed. Therefore, we check the time stamp of
     * CPU and GPU data as well
     */
@@ -144,7 +144,7 @@ PyTorchImageDataManager< TImage >
 //------------------------------------------------------------------------------
 template< typename TImage >
 void
-PyTorchImageDataManager< TImage >
+TorchImageDataManager< TImage >
 ::UpdateGPUBuffer()
 {
   if( m_IsGPUBufferLocked )
@@ -162,7 +162,7 @@ PyTorchImageDataManager< TImage >
 
     /* Why we check stale flag and time stamp together?
     * Because existing CPU image filters do not use pixel/buffer
-    * access function in PyTorchImage and therefore stale flag is not
+    * access function in TorchImage and therefore stale flag is not
     * correctly managed. Therefore, we check the time stamp of
     * CPU and GPU data as well
     */
@@ -183,8 +183,8 @@ PyTorchImageDataManager< TImage >
 //------------------------------------------------------------------------------
 template< typename TImage >
 void
-PyTorchImageDataManager< TImage >
-::Graft( const PyTorchImageDataManager *data )
+TorchImageDataManager< TImage >
+::Graft( const TorchImageDataManager *data )
 {
   // std::cout << "GPU timestamp : " << this->GetMTime() << ", CPU timestamp : " << m_Image->GetMTime() << std::endl;
 

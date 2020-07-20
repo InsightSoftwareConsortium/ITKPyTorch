@@ -16,27 +16,27 @@
  *
  *=========================================================================*/
 
-#include "itkPyTorchDataManager.h"
+#include "itkTorchDataManager.h"
 
 namespace itk
 {
 // constructor
-PyTorchDataManager::PyTorchDataManager()
+TorchDataManager::TorchDataManager()
 {
-  // Ask the PyTorchImageDataManager subclass to Initialize, which will also call Self::Initialize
+  // Ask the TorchImageDataManager subclass to Initialize, which will also call Self::Initialize
   this->Initialize();
 }
 
 
 //------------------------------------------------------------------------------
-PyTorchDataManager::~PyTorchDataManager()
+TorchDataManager::~TorchDataManager()
 {
 }
 
 
 //------------------------------------------------------------------------------
 void
-PyTorchDataManager::SetCPUStaleFlag( bool isStale )
+TorchDataManager::SetCPUStaleFlag( bool isStale )
 {
   m_IsCPUBufferStale = isStale;
 }
@@ -44,7 +44,7 @@ PyTorchDataManager::SetCPUStaleFlag( bool isStale )
 
 //------------------------------------------------------------------------------
 void
-PyTorchDataManager::SetGPUStaleFlag( bool isStale )
+TorchDataManager::SetGPUStaleFlag( bool isStale )
 {
   m_IsGPUBufferStale = isStale;
 }
@@ -52,7 +52,7 @@ PyTorchDataManager::SetGPUStaleFlag( bool isStale )
 
 //------------------------------------------------------------------------------
 void
-PyTorchDataManager::SetGPUBufferStale()
+TorchDataManager::SetGPUBufferStale()
 {
   this->UpdateCPUBuffer();
   m_IsGPUBufferStale = true;
@@ -61,7 +61,7 @@ PyTorchDataManager::SetGPUBufferStale()
 
 //------------------------------------------------------------------------------
 void
-PyTorchDataManager::SetCPUBufferStale()
+TorchDataManager::SetCPUBufferStale()
 {
   this->UpdateGPUBuffer();
   m_IsCPUBufferStale = true;
@@ -70,7 +70,7 @@ PyTorchDataManager::SetCPUBufferStale()
 
 //------------------------------------------------------------------------------
 bool
-PyTorchDataManager::Update()
+TorchDataManager::Update()
 {
   if( m_IsGPUBufferStale && m_IsCPUBufferStale )
     {
@@ -90,7 +90,7 @@ PyTorchDataManager::Update()
 
 //------------------------------------------------------------------------------
 void
-PyTorchDataManager::Graft( const PyTorchDataManager *data )
+TorchDataManager::Graft( const TorchDataManager *data )
 {
   if( data )
     {
@@ -102,7 +102,7 @@ PyTorchDataManager::Graft( const PyTorchDataManager *data )
 
 //------------------------------------------------------------------------------
 void
-PyTorchDataManager::Initialize()
+TorchDataManager::Initialize()
 {
   m_IsCPUBufferAllocated = false;
   m_IsGPUBufferAllocated = false;
@@ -115,9 +115,9 @@ PyTorchDataManager::Initialize()
 
 //------------------------------------------------------------------------------
 void
-PyTorchDataManager::PrintSelf( std::ostream &os, Indent indent ) const
+TorchDataManager::PrintSelf( std::ostream &os, Indent indent ) const
 {
-  os << indent << "PyTorchDataManager( " << this << " )" << std::endl;
+  os << indent << "TorchDataManager( " << this << " )" << std::endl;
   os << indent << "m_IsGPUBufferAllocated: " << m_IsGPUBufferAllocated << std::endl;
   os << indent << "m_IsCPUBufferAllocated: " << m_IsCPUBufferAllocated << std::endl;
   os << indent << "m_IsGPUBufferStale: " << m_IsGPUBufferStale << std::endl;

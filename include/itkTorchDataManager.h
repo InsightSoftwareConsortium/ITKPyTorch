@@ -16,8 +16,8 @@
  *
  *=========================================================================*/
 
-#ifndef itkPyTorchDataManager_h
-#define itkPyTorchDataManager_h
+#ifndef itkTorchDataManager_h
+#define itkTorchDataManager_h
 
 #include "itkObject.h"
 #include "itkDataObject.h"
@@ -26,23 +26,23 @@
 
 namespace itk
 {
-/** \class PyTorchDataManager
- * \brief GPU memory manager implemented using OpenCL. Required by PyTorchImage class.
+/** \class TorchDataManager
+ * \brief GPU memory manager implemented using libtorch. Required by TorchImage class.
  *
- * This class serves as a base class for GPU data container for PyTorchImage class,
+ * This class serves as a base class for GPU data container for TorchImage class,
  * which is similar to ImageBase class for Image class. However, all the image-related
- * meta data will be already stored in image class( parent of PyTorchImage ), therefore
- * we did not name it PyTorchImageBase. Rather, this class is a GPU-specific data manager
+ * meta data will be already stored in image class( parent of TorchImage ), therefore
+ * we did not name it TorchImageBase. Rather, this class is a GPU-specific data manager
  * that provides functionalities for CPU-GPU data synchronization and grafting GPU data.
  *
- * \ingroup ITKPyTorchCommon
+ * \ingroup ITKTorchCommon
  */
-class PyTorchDataManager : public Object   //DataObject//
+class TorchDataManager : public Object   //DataObject//
 {
 public:
-  ITK_DISALLOW_COPY_AND_ASSIGN( PyTorchDataManager );
+  ITK_DISALLOW_COPY_AND_ASSIGN( TorchDataManager );
 
-  using Self = PyTorchDataManager;
+  using Self = TorchDataManager;
   using Superclass = Object;
   using Pointer = SmartPointer< Self >;
   using ConstPointer = SmartPointer< const Self >;
@@ -51,7 +51,7 @@ public:
   // itkNewMacro( Self );          // Cannot because class is abstract.  Is this a problem?!!!
 
   /** Run-time type information( and related methods ). */
-  itkTypeMacro( PyTorchDataManager, Object );
+  itkTypeMacro( TorchDataManager, Object );
 
   using MutexType = std::mutex;
   using MutexHolderType = std::lock_guard< MutexType >;
@@ -87,10 +87,10 @@ public:
   /** Synchronize CPU and GPU buffers( using stale flags ) */
   virtual bool Update();
 
-  /** Method for grafting the content of one PyTorchDataManager into another one */
-  virtual void Graft( const PyTorchDataManager *data );
+  /** Method for grafting the content of one TorchDataManager into another one */
+  virtual void Graft( const TorchDataManager *data );
 
-  /** Initialize PyTorchDataManager */
+  /** Initialize TorchDataManager */
   virtual void Initialize();
 
   /** Make CPU buffer locked to avoid extra update from ITK pipeline. */
@@ -103,8 +103,8 @@ public:
 
 protected:
 
-  PyTorchDataManager();
-  virtual ~PyTorchDataManager();
+  TorchDataManager();
+  virtual ~TorchDataManager();
   virtual void PrintSelf( std::ostream &os, Indent indent ) const override;
 
 protected:
