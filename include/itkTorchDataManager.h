@@ -22,6 +22,7 @@
 #include "itkObject.h"
 #include "itkDataObject.h"
 #include "itkObjectFactory.h"
+#include "PyTorchExport.h"
 #include <mutex>
 
 namespace itk
@@ -37,7 +38,7 @@ namespace itk
  *
  * \ingroup ITKTorchCommon
  */
-class TorchDataManager : public Object   //DataObject//
+class PyTorch_EXPORT TorchDataManager : public Object   //DataObject//
 {
 public:
   ITK_DISALLOW_COPY_AND_ASSIGN( TorchDataManager );
