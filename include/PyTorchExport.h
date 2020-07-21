@@ -16,22 +16,30 @@
  *
  *=========================================================================*/
 
-#include "itkMinimalStandardRandomVariateGenerator.h"
+#ifndef __PyTorchExport_h
+#define __PyTorchExport_h
 
-#include "itkTestingMacros.h"
-#include "itkMath.h"
+#include "itkConfigure.h"
+#include "itkMacro.h"
 
-int
-itkMinimalStandardRandomVariateGeneratorTest(int, char *[])
-{
-  typedef itk::Statistics::MinimalStandardRandomVariateGenerator GeneratorType;
-  GeneratorType::Pointer                                         generator = GeneratorType::New();
+// Setup symbol export
+#define PyTorch_HIDDEN ITK_ABI_HIDDEN
 
-  ITK_EXERCISE_BASIC_OBJECT_METHODS(generator, MinimalStandardRandomVariateGenerator, RandomVariateGeneratorBase);
+#if !defined( ITKSTATIC )
+#ifdef PyTorch_EXPORTS
+#define PyTorch_EXPORT ITK_ABI_EXPORT
+#else
+#define PyTorch_EXPORT ITK_ABI_IMPORT
+#endif  /* PyTorch_EXPORTS */
+#else
+/* PyTorch is built as a static lib */
+#if __GNUC__ >= 4
+// Do not hide symbols in the static PyTorch library in case
+// -fvisibility=hidden is used
+#define PyTorch_EXPORT ITK_ABI_EXPORT
+#else
+#define PyTorch_EXPORT
+#endif
+#endif
 
-  generator->Initialize(324);
-
-  ITK_TEST_EXPECT_TRUE(itk::Math::FloatAlmostEqual(generator->GetVariate(), 1.35581, 4, 0.0001));
-
-  return EXIT_SUCCESS;
-}
+#endif /* __PyTorchExport_h */

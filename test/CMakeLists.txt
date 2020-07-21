@@ -1,21 +1,16 @@
 itk_module_test()
 
 set(PyTorchTests
-  itkMinimalStandardRandomVariateGeneratorTest.cxx
-  itkPyTorchImageToImageFilterTest.cxx
+  itkTorchImageTest.cxx
   )
 
 CreateTestDriver(PyTorch "${PyTorch-Test_LIBRARIES}" "${PyTorchTests}")
 
-itk_add_test(NAME itkMinimalStandardRandomVariateGeneratorTest
-  COMMAND PyTorchTestDriver itkMinimalStandardRandomVariateGeneratorTest
-  )
-
-itk_add_test(NAME itkPyTorchImageToImageFilterTest
+itk_add_test(NAME itkTorchImageTest
   COMMAND PyTorchTestDriver
     --compare
-    DATA{Baseline/itkPyTorchImageToImageFilterTestOutput.mha}
-    ${ITK_TEST_OUTPUT_DIR}/itkPyTorchImageToImageFilterTestOutput.mha
-  itkPyTorchImageToImageFilterTest
-    ${ITK_TEST_OUTPUT_DIR}/itkPyTorchImageToImageFilterTestOutput.mha
+    DATA{Baseline/itkTorchImageTestOutput.mha}
+    ${ITK_TEST_OUTPUT_DIR}/itkTorchImageTestOutput.mha
+  itkTorchImageTest
+    ${ITK_TEST_OUTPUT_DIR}/itkTorchImageTestOutput.mha
   )

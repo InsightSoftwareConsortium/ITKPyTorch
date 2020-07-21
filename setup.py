@@ -19,8 +19,8 @@ setup(
     packages=['itk'],
     package_dir={'itk': 'itk'},
     download_url=r'https://github.com/InsightSoftwareConsortium/ITKPyTorch',
-    description=r'Support for PyTorch Tensors as ITK Images.',
-    long_description='PyTorch Tensors make a useful image type in ITK.',
+    description=r'Support for PyTorch/libtorch Tensors as ITK Images.',
+    long_description='PyTorch/libtorch Tensors make a useful image type in ITK.',
     classifiers=[
         "License :: OSI Approved :: Apache Software License",
         "Programming Language :: Python",

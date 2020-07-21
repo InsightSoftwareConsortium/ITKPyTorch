@@ -16,7 +16,7 @@
  *
  *=========================================================================*/
 
-#include "itkPyTorchImageToImageFilter.h"
+#include "itkTorchImageToImageFilter.h"
 
 #include "itkCommand.h"
 #include "itkImageFileWriter.h"
@@ -30,19 +30,19 @@ public:
   itkNewMacro(ShowProgress);
 
   void
-  Execute(itk::Object * caller, const itk::EventObject & event) override
+  Execute(itk::Object *caller, const itk::EventObject &event) override
   {
     Execute((const itk::Object *)caller, event);
   }
 
   void
-  Execute(const itk::Object * caller, const itk::EventObject & event) override
+  Execute(const itk::Object *caller, const itk::EventObject &event) override
   {
     if (!itk::ProgressEvent().CheckEvent(&event))
     {
       return;
     }
-    const auto * processObject = dynamic_cast<const itk::ProcessObject *>(caller);
+    const auto *processObject = dynamic_cast<const itk::ProcessObject *>(caller);
     if (!processObject)
     {
       return;
@@ -52,7 +52,7 @@ public:
 };
 } // namespace
 
-int itkPyTorchImageToImageFilterTest(int argc, char * argv[])
+int itkTorchImageToImageFilterTest(int argc, char *argv[])
 {
   if (argc < 2)
   {
@@ -62,16 +62,16 @@ int itkPyTorchImageToImageFilterTest(int argc, char * argv[])
     std::cerr << std::endl;
     return EXIT_FAILURE;
   }
-  const char * outputImageFileName = argv[1];
+  const char *outputImageFileName = argv[1];
 
   constexpr unsigned int Dimension = 2;
   using PixelType = float;
   using ImageType = itk::Image<PixelType, Dimension>;
 
-  using FilterType = itk::PyTorchImageToImageFilter<ImageType, ImageType>;
+  using FilterType = itk::TorchImageToImageFilter<ImageType, ImageType>;
   FilterType::Pointer filter = FilterType::New();
 
-  ITK_EXERCISE_BASIC_OBJECT_METHODS(filter, PyTorchImageToImageFilter, ImageToImageFilter);
+  ITK_EXERCISE_BASIC_OBJECT_METHODS(filter, TorchImageToImageFilter, ImageToImageFilter);
 
   // Create input image to avoid test dependencies.
   ImageType::SizeType size;
