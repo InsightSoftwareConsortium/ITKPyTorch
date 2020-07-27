@@ -288,7 +288,6 @@ public:
 
   /** Get matrices intended to help with the conversion of Index coordinates
    *  to PhysicalPoint coordinates */
-  // Should these be in the Superclass only?!!!
   itkGetConstReferenceMacro( IndexToPhysicalPoint, DirectionType );
   itkGetConstReferenceMacro( PhysicalPointToIndex, DirectionType );
 
