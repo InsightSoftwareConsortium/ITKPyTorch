@@ -40,16 +40,16 @@ void
 TorchImageDataManager< TImage >
 ::Allocate()
 {
-  // Allocate memory for the GPU here.
   try
     {
+    // Allocate memory for the GPU.  If there is no GPU this will fail
     c10::TensorOptions options = torch::TensorOptions().dtype( ImageType::TorchValueType ).layout( torch::kStrided ).device( torch::kCUDA ).requires_grad( false );
     m_GPUTensor = torch::empty( m_Size, options );
     m_IsGPUBufferAllocated = true;
     }
   catch (...)
     {
-    // What if there is no GPU?!!!
+    m_IsGPUBufferAllocated = false;
     }
 }
 
@@ -90,7 +90,7 @@ void
 TorchImageDataManager< TImage >
 ::SetCPUBufferPointer( void *ptr )
 {
-  // How do we know that m_Size is set correctly?!!!
+  // We depend upon: m_Size being set already, the input ptr pointing to the right amount of memory
   c10::TensorOptions options = torch::TensorOptions().dtype( ImageType::TorchValueType ).layout( torch::kStrided ).device( torch::kCPU ).requires_grad( false );
   m_CPUTensor = torch::from_blob( reinterpret_cast< DeepScalarType * >( ptr ), m_Size, options );
   m_IsCPUBufferAllocated = true;
@@ -185,13 +185,31 @@ template< typename TImage >
 void
 TorchImageDataManager< TImage >
 ::Graft( const TorchImageDataManager *data )
-{
-  // std::cout << "GPU timestamp : " << this->GetMTime() << ", CPU timestamp : " << m_Image->GetMTime() << std::endl;
+  {
+  if( data && !data->m_IsCPUBufferLocked && !data->m_IsGPUBufferLocked && !m_IsCPUBufferLocked && !m_IsGPUBufferLocked )
+    {
+    // std::cout << "GPU timestamp : " << this->GetMTime() << ", CPU timestamp : " << m_Image->GetMTime() << std::endl;
 
-  // Write me!!!  Graft actual pixel values.
-  Superclass::Graft( data );
+    m_Size = data->m_Size;
+    if ( data->m_IsCPUBufferAllocated )
+      {
+      // Graft the CPU pixels
+      DeepScalarType * const data_ptr = data->m_CPUTensor.data_ptr< DeepScalarType >();
+      const c10::TensorOptions options = data->m_CPUTensor.options();
+      m_CPUTensor = torch::from_blob( data_ptr, m_Size, options );
+      }
 
-  // std::cout << "GPU timestamp : " << this->GetMTime() << ", CPU timestamp : " << m_Image->GetMTime() << std::endl;
+    if ( data->m_IsGPUBufferAllocated )
+      {
+      // Graft the GPU pixels
+      DeepScalarType * const data_ptr = data->m_GPUTensor.data_ptr< DeepScalarType >();
+      const c10::TensorOptions options = data->m_GPUTensor.options();
+      m_GPUTensor = torch::from_blob( data_ptr, m_Size, options );
+      }
+
+    Superclass::Graft( data );
+    // std::cout << "GPU timestamp : " << this->GetMTime() << ", CPU timestamp : " << m_Image->GetMTime() << std::endl;
+    }
 }
 
 

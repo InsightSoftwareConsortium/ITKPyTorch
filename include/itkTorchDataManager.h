@@ -49,7 +49,7 @@ public:
   using ConstPointer = SmartPointer< const Self >;
 
   /** Method for creation through the object factory. */
-  // itkNewMacro( Self );          // Cannot because class is abstract.  Is this a problem?!!!
+  // itkNewMacro( Self );          // Cannot because class is abstract.
 
   /** Run-time type information( and related methods ). */
   itkTypeMacro( TorchDataManager, Object );
@@ -111,8 +111,8 @@ protected:
 protected:
 
   /** checks if buffer has been allocated */
-  bool m_IsGPUBufferAllocated;  // Make sure I am updated appropriately!!!
-  bool m_IsCPUBufferAllocated;  // Make sure I am updated appropriately!!!
+  bool m_IsGPUBufferAllocated;
+  bool m_IsCPUBufferAllocated;
 
   /** checks if buffer needs to be updated */
   bool m_IsGPUBufferStale;

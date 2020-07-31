@@ -92,8 +92,10 @@ TorchDataManager::Update()
 void
 TorchDataManager::Graft( const TorchDataManager *data )
 {
-  if( data )
+  if( data && !data->m_IsCPUBufferLocked && !data->m_IsGPUBufferLocked && !m_IsCPUBufferLocked && !m_IsGPUBufferLocked )
     {
+    m_IsCPUBufferAllocated = data->m_IsCPUBufferAllocated;
+    m_IsGPUBufferAllocated = data->m_IsGPUBufferAllocated;
     m_IsCPUBufferStale = data->m_IsCPUBufferStale;
     m_IsGPUBufferStale = data->m_IsGPUBufferStale;
     }
