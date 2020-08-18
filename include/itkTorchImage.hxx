@@ -15,324 +15,15 @@
  *  limitations under the License.
  *
  *=========================================================================*/
-
 #ifndef itkTorchImage_hxx
 #define itkTorchImage_hxx
 
 #include "itkTorchImage.h"
+#include "itkTorchTensorAccessorHelper.h"
 
 namespace itk
 {
-template< typename TPixel, unsigned int VImageDimension >
-TorchImage< TPixel, VImageDimension >
-::TorchImage()
-{
-  m_DataManager = TorchImageDataManager< TorchImage< TPixel, VImageDimension > >::New();
-  m_DataManager->SetTimeStamp( this->GetTimeStamp() );
-  m_Graft = false;
-}
 
-
-//------------------------------------------------------------------------------
-template< typename TPixel, unsigned int VImageDimension >
-void
-TorchImage< TPixel, VImageDimension >
-::Allocate( bool initialize )
-{
-  // allocate CPU memory - calling Allocate() in superclass
-  Superclass::Allocate( initialize );
-
-  if( !m_Graft )
-    {
-    AllocateGPU(); // allocate GPU memory
-    }
-}
-
-//------------------------------------------------------------------------------
-template< typename TPixel, unsigned int VImageDimension >
-void
-TorchImage< TPixel, VImageDimension >
-::AllocateGPU()
-{
-  // Much of the same work is done in Initialize.  Where should it be done?!!!
-
-  if( !m_Graft )
-  {
-    // allocate GPU memory
-    const SizeType &bufferSize = this->GetBufferedRegion().GetSize();
-    std::vector< int64_t > torchSize( TorchDimension );
-    for (SizeValueType i = 0; i < ImageDimension; ++i)
-      {
-      torchSize.push_back( bufferSize[i] );
-      }
-    DimensionHelper< PixelType >::AppendSizes( torchSize );
-    m_DataManager->SetTorchSize( torchSize );
-    m_DataManager->SetImagePointer( this );
-    m_DataManager->SetCPUBufferPointer( Superclass::GetBufferPointer() );
-    m_DataManager->Allocate();
-
-    /* prevent unnecessary copy from CPU to GPU at the beginning */
-    m_DataManager->SetTimeStamp( this->GetTimeStamp() );
-  }
-}
-
-
-//------------------------------------------------------------------------------
-template< typename TPixel, unsigned int VImageDimension >
-void
-TorchImage< TPixel, VImageDimension >
-::Initialize()
-{
-  // CPU image initialize
-  Superclass::Initialize();
-
-  // GPU image initialize
-  m_DataManager->Initialize();
-
-  const SizeType &bufferSize = this->GetBufferedRegion().GetSize();
-  std::vector< int64_t > torchSize ( TorchDimension );
-  for (SizeValueType i = 0; i < ImageDimension; ++i)
-    {
-    torchSize.push_back( bufferSize[i] );
-    }
-  DimensionHelper< PixelType >::AppendSizes( torchSize );
-  m_DataManager->SetTorchSize( torchSize );
-  m_DataManager->SetImagePointer( this );
-  m_DataManager->SetCPUBufferPointer( Superclass::GetBufferPointer() );
-  m_DataManager->Allocate();
-
-  /* prevent unnecessary copy from CPU to GPU at the beginning */
-  m_DataManager->SetTimeStamp( this->GetTimeStamp() );
-  m_Graft = false;
-}
-
-
-//------------------------------------------------------------------------------
-template< typename TPixel, unsigned int VImageDimension >
-void
-TorchImage< TPixel, VImageDimension >
-::Modified() const
-{
-  Superclass::Modified();
-}
-
-
-//------------------------------------------------------------------------------
-template< typename TPixel, unsigned int VImageDimension >
-void
-TorchImage< TPixel, VImageDimension >
-::FillBuffer( const TPixel &value )
-{
-  m_DataManager->SetGPUBufferStale();
-  Superclass::FillBuffer( value );
-}
-
-
-//------------------------------------------------------------------------------
-template< typename TPixel, unsigned int VImageDimension >
-void
-TorchImage< TPixel, VImageDimension >
-::SetPixel( const IndexType &index, const TPixel &value )
-{
-  m_DataManager->SetGPUBufferStale();
-  Superclass::SetPixel( index, value );
-}
-
-
-//------------------------------------------------------------------------------
-template< typename TPixel, unsigned int VImageDimension >
-const TPixel &
-TorchImage< TPixel, VImageDimension >
-::GetPixel( const IndexType &index ) const
-{
-  m_DataManager->UpdateCPUBuffer();
-  return Superclass::GetPixel( index );
-}
-
-
-//------------------------------------------------------------------------------
-template< typename TPixel, unsigned int VImageDimension >
-TPixel &
-TorchImage< TPixel, VImageDimension >
-::GetPixel( const IndexType &index )
-{
-  /* less conservative version - if you modify pixel value using
-   * this pointer then you must set the image as modified manually */
-  m_DataManager->UpdateCPUBuffer();
-  return Superclass::GetPixel( index );
-}
-
-
-//------------------------------------------------------------------------------
-template< typename TPixel, unsigned int VImageDimension >
-TPixel &
-TorchImage< TPixel, VImageDimension >
-::operator[]( const IndexType &index )
-{
-  /* less conservative version - if you modify pixel value using
-   * this pointer then you must set the image as modified manually */
-  m_DataManager->UpdateCPUBuffer();
-  return Superclass::operator[]( index );
-}
-
-
-//------------------------------------------------------------------------------
-template< typename TPixel, unsigned int VImageDimension >
-const TPixel &
-TorchImage< TPixel, VImageDimension >
-::operator[]( const IndexType &index ) const
-{
-  m_DataManager->UpdateCPUBuffer();
-  return Superclass::operator[]( index );
-}
-
-
-//------------------------------------------------------------------------------
-template< typename TPixel, unsigned int VImageDimension >
-void
-TorchImage< TPixel, VImageDimension >
-::SetPixelContainer( PixelContainer *container )
-{
-  Superclass::SetPixelContainer( container );
-
-  m_DataManager->SetCPUStaleFlag( false );
-  m_DataManager->SetGPUStaleFlag( true );
-}
-
-
-//------------------------------------------------------------------------------
-template< typename TPixel, unsigned int VImageDimension >
-void
-TorchImage< TPixel, VImageDimension >
-::UpdateBuffers()
-{
-  m_DataManager->UpdateCPUBuffer();
-  m_DataManager->UpdateGPUBuffer();
-}
-
-
-//------------------------------------------------------------------------------
-template< typename TPixel, unsigned int VImageDimension >
-void
-TorchImage< TPixel, VImageDimension >
-::UpdateCPUBuffer()
-{
-  m_DataManager->UpdateCPUBuffer();
-}
-
-
-//------------------------------------------------------------------------------
-template< typename TPixel, unsigned int VImageDimension >
-void
-TorchImage< TPixel, VImageDimension >
-::UpdateGPUBuffer()
-{
-  m_DataManager->UpdateGPUBuffer();
-}
-
-
-//------------------------------------------------------------------------------
-template< typename TPixel, unsigned int VImageDimension >
-TPixel *
-TorchImage< TPixel, VImageDimension >
-::GetBufferPointer()
-{
-  /* less conservative version - if you modify pixel value using
-   * this pointer then you must set the image as modified manually */
-  m_DataManager->UpdateCPUBuffer();
-  return Superclass::GetBufferPointer();
-}
-
-
-//------------------------------------------------------------------------------
-template< typename TPixel, unsigned int VImageDimension >
-const TPixel *
-TorchImage< TPixel, VImageDimension >
-::GetBufferPointer() const
-{
-  m_DataManager->UpdateCPUBuffer();
-  return Superclass::GetBufferPointer();
-}
-
-
-//------------------------------------------------------------------------------
-template< typename TPixel, unsigned int VImageDimension >
-void
-TorchImage< TPixel, VImageDimension >
-::GraftITKImage( const DataObject *data )
-{
-  Superclass::Graft( data );
-}
-
-
-//------------------------------------------------------------------------------
-template< typename TPixel, unsigned int VImageDimension >
-void
-TorchImage< TPixel, VImageDimension >
-::Graft( const DataObject *data )
-{
-  // call the superclass' implementation
-  Superclass::Graft( data );
-
-  if( data )
-    {
-    // Attempt to cast data to an TorchImageDataManagerType
-    using TorchImageDataManagerType = TorchImageDataManager< TorchImage >;
-    const TorchImageDataManagerType *ptr = nullptr;
-
-    try
-      {
-      // Pass regular pointer to Graft() instead of smart pointer due to type casting problem
-      ptr = dynamic_cast< const TorchImageDataManagerType * >( ( ( TorchImage * )data )->m_DataManager.GetPointer() );
-      }
-    catch( ... )
-      {
-      return;
-      }
-
-    if( ptr )
-      {
-      // Debug
-      // std::cout << "GPU timestamp : " << m_DataManager->GetMTime() << ", CPU timestamp : " << this->GetMTime() << std::endl;
-
-      // call GPU data graft function
-      m_DataManager->SetImagePointer( this );
-      m_DataManager->Graft( ptr );
-
-      // Synchronize timestamp of TorchImage and TorchDataManager
-      m_DataManager->SetTimeStamp( this->GetTimeStamp() );
-
-      m_Graft = true;
-
-      // Debug
-      //std::cout << "GPU timestamp : " << m_DataManager->GetMTime() << ", CPU
-      // timestamp : " << this->GetMTime() << std::endl;
-      }
-    else
-      {
-      // pointer could not be cast back down
-      itkExceptionMacro(  << "itk::TorchImage::Graft() cannot cast "
-        << typeid( data ).name() << " to "
-        << typeid( const TorchImageDataManagerType * ).name() );
-      }
-    }
-}
-
-
-//------------------------------------------------------------------------------
-template< typename TPixel, unsigned int VImageDimension >
-void
-TorchImage< TPixel, VImageDimension >
-::PrintSelf( std::ostream &os, Indent indent ) const
-{
-  Superclass::PrintSelf( os, indent );
-
-  m_DataManager->PrintSelf( os, indent );
-}
-
-
-// Some compilers require that static constexpr members that are initialized when declared must nonetheless also be
-// defined.
 template< typename TPixel, unsigned int VImageDimension >
 constexpr unsigned int
 TorchImage< TPixel, VImageDimension >
@@ -346,8 +37,287 @@ TorchImage< TPixel, VImageDimension >
 template< typename TPixel, unsigned int VImageDimension >
 constexpr unsigned int
 TorchImage< TPixel, VImageDimension >
+::PixelDimension;
+
+template< typename TPixel, unsigned int VImageDimension >
+constexpr unsigned int
+TorchImage< TPixel, VImageDimension >
 ::TorchDimension;
 
-} // namespace itk
+template< typename TPixel, unsigned int VImageDimension >
+bool
+TorchImage< TPixel, VImageDimension >
+::ChangeDevice( DeviceType deviceType )
+{
+  switch( deviceType )
+    {
+    case itkCUDA:
+      return ChangeDevice( deviceType, 0 );
+      break;
+    case itkCPU:
+      if( m_DeviceType == torch::kCPU )
+        {
+        return true;            // no change
+        }
+      // Change from GPU to CPU
+      m_Tensor = m_Tensor.to( torch::kCPU );
+      m_DeviceType = deviceType;
+    }
+
+  return true;
+}
+
+template< typename TPixel, unsigned int VImageDimension >
+bool
+TorchImage< TPixel, VImageDimension >
+::ChangeDevice( DeviceType deviceType, int64_t cudaDeviceNumber )
+{
+  switch( deviceType )
+    {
+    case itkCUDA:
+      if( m_DeviceType == torch::kCUDA && m_CudaDeviceNumber == cudaDeviceNumber )
+        {
+        return true;            // no change
+        }
+      m_Tensor = m_Tensor.to( torch::kCUDA, cudaDeviceNumber );
+      m_DeviceType = deviceType;
+      m_CudaDeviceNumber = cudaDeviceNumber;
+      break;
+    case itkCPU:
+      return false;     // cudaDeviceNumber not supported for torch::kCPU.
+      break;
+    }
+
+  return true;
+}
+
+template< typename TPixel, unsigned int VImageDimension >
+std::vector< int64_t >
+TorchImage< TPixel, VImageDimension >
+::ComputeTorchSize() const
+{
+  // Get index components of the pixel, reversing their order so that
+  // the first one varies the slowest in the buffer.
+  const SizeType &bufferSize = Superclass::GetBufferedRegion().GetSize();
+  std::vector< int64_t > torchSize( Self::TorchDimension );
+  for( SizeValueType i = 0; i < Self::ImageDimension; ++i )
+    {
+    torchSize.push_back( bufferSize[Self::ImageDimension-1-i] );
+    }
+  // Append 0 or more dimension sizes representing non-scalar pixels.
+  Self::TorchPixelHelper::AppendSizes( torchSize );
+  return torchSize;
+}
+
+template< typename TPixel, unsigned int VImageDimension >
+void
+TorchImage< TPixel, VImageDimension >
+::Allocate( bool initializePixels )
+{
+  Superclass::Allocate( initializePixels );
+  // Non-scalar pixel types are represented as additional dimensions in the torch image.
+  const std::vector< int64_t > torchSize = this->ComputeTorchSize();
+
+  // Set up Tensor options
+  c10::TensorOptions tensorOptions = torch::dtype( Self::TorchValueType ).layout( torch::kStrided ).requires_grad( false );
+  switch( m_DeviceType )
+    {
+    case itkCUDA:
+      tensorOptions = tensorOptions.device( torch::kCUDA, m_CudaDeviceNumber );
+      break;
+    case itkCPU:
+      tensorOptions = tensorOptions.device( torch::kCPU );
+      break;
+    }
+
+  if( initializePixels )
+    {
+    m_Tensor = torch::zeros( torchSize, tensorOptions );
+    }
+  else
+    {
+    m_Tensor = torch::empty( torchSize, tensorOptions );
+    }
+
+  // m_Allocated = true;
+}
+
+template< typename TPixel, unsigned int VImageDimension >
+void
+TorchImage< TPixel, VImageDimension >
+::Initialize()
+{
+  m_Tensor = torch::Tensor();
+  Superclass::Initialize();
+  // m_Allocated = false;
+}
+
+template< typename TPixel, unsigned int VImageDimension >
+void
+TorchImage< TPixel, VImageDimension >
+::FillBuffer( const TPixel &value )
+{
+  torch::TensorAccessor< DeepScalarType, TorchDimension > accessor
+    = m_Tensor.accessor< DeepScalarType, TorchDimension >();
+  const SizeType &bufferSize = Superclass::GetBufferedRegion().GetSize();
+  FillBufferPart< TorchDimension, ImageDimension >( accessor, bufferSize, value );
+}
+
+template< typename TPixel, unsigned int VImageDimension >
+template< int VCurrentAccessorLevel, int VNumberOfSteps >
+void
+TorchImage< TPixel, VImageDimension >
+::FillBufferPart( torch::TensorAccessor< DeepScalarType, VCurrentAccessorLevel > &accessor,
+  const SizeType &bufferSize,
+  const TPixel &value )
+{
+  for( SizeValueType i = 0; i < bufferSize[VNumberOfSteps-1]; ++i )
+    {
+    FillBufferPart< TorchDimension-1, ImageDimension-1 >(accessor[i], bufferSize, value);
+    }
+}
+
+template< typename TPixel, unsigned int VImageDimension >
+template< int VCurrentAccessorLevel >
+void
+TorchImage< TPixel, VImageDimension >
+::FillBufferPart< VCurrentAccessorLevel, 0 >( torch::TensorAccessor< DeepScalarType, VCurrentAccessorLevel > &accessor,
+  const SizeType &bufferSize,
+  const TPixel &value )
+{
+  accessor = value;
+}
+
+template< typename TPixel, unsigned int VImageDimension >
+void
+TorchImage< TPixel, VImageDimension >
+::SetPixel( const IndexType & index, const PixelType & value )
+{
+  torch::TensorAccessor< DeepScalarType, TorchDimension > accessor
+    = m_Tensor.accessor< DeepScalarType, TorchDimension >();
+  torch::TensorAccessor< DeepScalarType, ImageDimension > pixelAccessor
+    = TorchTensorAccessorHelper< DeepScalarType, IndexType, TorchDimension, ImageDimension >::FindPixel( accessor, index );
+  TorchPixelHelper {pixelAccessor} = value;
+}
+
+template< typename TPixel, unsigned int VImageDimension >
+typename TorchImage< TPixel, VImageDimension >::TorchPixelHelper
+TorchImage< TPixel, VImageDimension >
+::GetPixel( const IndexType & index )
+{
+  torch::TensorAccessor< DeepScalarType, TorchDimension > accessor
+    = m_Tensor.accessor< DeepScalarType, TorchDimension >();
+  torch::TensorAccessor< DeepScalarType, ImageDimension > pixelAccessor
+    = TorchTensorAccessorHelper< DeepScalarType, IndexType, TorchDimension, ImageDimension >::FindPixel( accessor, index );
+  return TorchPixelHelper {pixelAccessor};
+}
+
+template< typename TPixel, unsigned int VImageDimension >
+const typename TorchImage< TPixel, VImageDimension >::TorchPixelHelper
+TorchImage< TPixel, VImageDimension >
+::GetPixel( const IndexType & index ) const
+{
+  torch::TensorAccessor< DeepScalarType, TorchDimension > accessor
+    = m_Tensor.accessor< DeepScalarType, TorchDimension >();
+  torch::TensorAccessor< DeepScalarType, ImageDimension > pixelAccessor
+    = TorchTensorAccessorHelper< DeepScalarType, IndexType, TorchDimension, ImageDimension >::FindPixel( accessor, index );
+  return TorchPixelHelper {pixelAccessor};
+}
+
+/** The pointer might be to GPU memory and, if so, could not be
+ * dereferenced */
+template< typename TPixel, unsigned int VImageDimension >
+TPixel *
+TorchImage< TPixel, VImageDimension >
+::GetBufferPointer()
+{
+  return reinterpret_cast< TPixel * >( m_Tensor.data_ptr< DeepScalarType >() );
+}
+
+/** The pointer might be to GPU memory and, if so, could not be
+ * dereferenced */
+template< typename TPixel, unsigned int VImageDimension >
+const TPixel *
+TorchImage< TPixel, VImageDimension >
+::GetBufferPointer() const
+{
+  return reinterpret_cast< const TPixel * >( m_Tensor.data_ptr< DeepScalarType >() );
+}
+
+template< typename TPixel, unsigned int VImageDimension >
+void
+TorchImage< TPixel, VImageDimension >
+::Graft( const Self * data )
+{
+  Superclass::Graft( data );
+  m_DeviceType = data->m_DeviceType;
+  m_CudaDeviceNumber = data->m_CudaDeviceNumber;
+  // m_Allocated = data->m_Allocated;
+  m_Tensor = torch::from_blob( data->m_Tensor.data_ptr(), data->m_Tensor.sizes(), data->m_Tensor.options() );
+  // m_Grafted = data->m_Grafted;
+}
+
+template< typename TPixel, unsigned int VImageDimension >
+void
+TorchImage< TPixel, VImageDimension >
+::Graft( const DataObject * data )
+{
+  if( data )
+    {
+    // Attempt to cast data to an Image
+    const auto * const imgData = dynamic_cast< const Self * >( data );
+
+    if ( imgData != nullptr )
+      {
+      this->Graft( imgData );
+      }
+    else
+      {
+      // pointer could not be cast back down
+      itkExceptionMacro( << "itk::TorchImage::Graft() cannot cast " << typeid( data ).name() << " to "
+        << typeid( const Self * ).name() );
+      }
+    }
+}
+
+template< typename TPixel, unsigned int VImageDimension >
+TorchImage< TPixel, VImageDimension >
+::TorchImage()
+{
+  m_DeviceType = itkCUDA;
+  m_CudaDeviceNumber = 0;
+  // m_Allocated = false;
+  m_Tensor = torch::Tensor();
+  // m_Grafted = false;
+}
+
+template< typename TPixel, unsigned int VImageDimension >
+void
+TorchImage< TPixel, VImageDimension >
+::PrintSelf( std::ostream & os, Indent indent ) const
+{
+  Superclass::PrintSelf(os, indent);
+  os
+    << indent << "m_DeviceType: " << m_DeviceType << std::endl
+    << indent << "m_CudaDeviceNumber: " << m_CudaDeviceNumber << std::endl
+    // << indent << "m_Allocated: " << m_Allocated << std::endl
+    //!!! << indent << "m_Tensor: " << m_Tensor << std::endl
+    // << indent << "m_Grafted: " << m_Grafted << std::endl
+    ;
+}
+
+template <typename TPixel, unsigned int VImageDimension>
+void
+TorchImage<TPixel, VImageDimension>
+::ComputeIndexToPhysicalPointMatrices()
+{
+  this->Superclass::ComputeIndexToPhysicalPointMatrices();
+}
+
+// Implement ComputeOffsetTable?!!!
+
+// Do we need this->Modified calls()?!!!
+
+} // end namespace itk
 
 #endif

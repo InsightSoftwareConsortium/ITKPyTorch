@@ -62,7 +62,7 @@ int itkTorchImageTest(int argc, char *argv[])
     std::cerr << std::endl;
     return EXIT_FAILURE;
     }
-  // !!! const char *outputImageFileName = argv[1];
+  //!!! const char * const outputImageFileName = argv[1];
 
   // Torch supports:
   // Unsigned integer types: 8 bits.

@@ -1,0 +1,15 @@
+itk_wrap_class("itk::TorchPixelHelper")
+  # PixelType
+  set(WRAP_ITK_TORCH_SCALAR "F" "D" "UC" "SC" "SS" "SL" "SLL")
+  set(WRAP_ITK_TORCH_TYPE ${WRAP_ITK_TORCH_SCALAR} ${WRAP_ITK_RGB} ${WRAP_ITK_RGBA})
+  foreach(vector ${WRAP_ITK_VECTOR})
+    foreach(vector_components ${ITK_WRAP_VECTOR_COMPONENTS})
+      list(APPEND WRAP_ITK_TORCH_TYPE ${ITKM_${vector}${vector_components}})
+    endforeach()
+  endforeach()
+  foreach(pixel_type ${WRAP_ITK_TORCH_TYPE})
+    itk_wrap_template(
+      "${ITKM_${pixel_type}}"
+      "${ITKT_${pixel_type}},void")
+  endforeach()
+itk_end_wrap_class()

@@ -23,14 +23,16 @@
 namespace itk
 {
 
-/** \ class TorchImageToImageFilter
+/** \class TorchImageToImageFilter
  *
- * \ brief Filters a image by iterating over its pixels.
+ * \brief Filters a image by iterating over its pixels.
  *
  * Filters a image by iterating over its pixels in a multi-threaded way
  * and {to be completed by the developer}.
  *
- * \ ingroup Torch
+ * \sa ImageToImageFilter
+ *
+ * \ingroup PyTorch
  *
  */
 template< typename TInputImage, typename TOutputImage >
