@@ -147,16 +147,16 @@ public:
   template< typename UPixelType, unsigned int NUImageDimension = ImageDimension >
   using RebindImageType = itk::TorchImage< UPixelType, NUImageDimension >;
 
-  using TorchPixelHelper = TorchPixelHelper< PixelType >;
-  using DeepScalarType = typename TorchPixelHelper::DeepScalarType;
-  static constexpr unsigned int PixelDimension = TorchPixelHelper::PixelDimension;
+  using TorchImagePixelHelper = TorchPixelHelper< PixelType >;
+  using DeepScalarType = typename TorchImagePixelHelper::DeepScalarType;
+  static constexpr unsigned int PixelDimension = TorchImagePixelHelper::PixelDimension;
   static constexpr unsigned int TorchDimension = ImageDimension + PixelDimension;
 
   enum DeviceType { itkCPU, itkCUDA };
 
-  /** Select torch::kCPU or torch::kCUDA (device #0) */
+  /** Select itkCUDA (on device #0) or itkCPU */
   bool ChangeDevice( DeviceType deviceType );
-  /** Select torch::kCUDA and a device number */
+  /** Select itkCUDA and a device number */
   bool ChangeDevice( DeviceType deviceType, int64_t cudaDeviceNumber );
 
   /** Allocate the torch image memory. The size of the torch image
@@ -182,21 +182,21 @@ public:
    *
    * For efficiency, this function does not check that the
    * torch image has actually been allocated yet. */
-  TorchPixelHelper GetPixel( const IndexType & index );
-  const TorchPixelHelper GetPixel( const IndexType & index ) const;
+  TorchImagePixelHelper GetPixel( const IndexType & index );
+  const TorchImagePixelHelper GetPixel( const IndexType & index ) const;
 
   /** \brief Access a pixel. This version can be an lvalue.
    *
    * For efficiency, this function does not check that the
    * torch image has actually been allocated yet. */
-  TorchPixelHelper operator[]( const IndexType & index )
+  TorchImagePixelHelper operator[]( const IndexType & index )
     {
-    return GetPixel( index );
+    return this->GetPixel( index );
     }
 
-  const TorchPixelHelper operator[]( const IndexType & index ) const
+  const TorchImagePixelHelper operator[]( const IndexType & index ) const
     {
-    return GetPixel( index );
+    return this->GetPixel( index );
     }
 
   /** The pointer might be to GPU memory and, if so, could not be
@@ -221,7 +221,7 @@ public:
 
   constexpr unsigned int GetNumberOfComponentsPerPixel() const override
     {
-    return Self::TorchPixelHelper::NumberOfComponents;
+    return Self::TorchImagePixelHelper::NumberOfComponents;
     }
 
 protected:
@@ -257,15 +257,6 @@ protected:
    * of size X and Y beyond the index, with the dimension for B being
    * last and varying the fastest in the underlying buffer. */
   std::vector< int64_t > ComputeTorchSize() const;
-
-  /** Set every part of the tensor accessible from `accessor` to the
-   * pixel value `value` */
-  template< int VCurrentAccessorLevel, int VNumberOfSteps >
-  void
-  FillBufferPart(
-    torch::TensorAccessor< DeepScalarType, VCurrentAccessorLevel > &accessor,
-    const SizeType &bufferSize,
-    const TPixel &value );
 
   /** Support the ImageBase::Graft methods.
    */

@@ -19,6 +19,7 @@
 #define itkTorchPixelHelper_h
 
 #include <torch/torch.h>
+#include "itkUniformTorchTensorAccessor.h"
 
 namespace itk
 {
@@ -99,19 +100,20 @@ public:
 
   TorchPixelHelper &operator=( const PixelType &value )
     {
-    m_Accessor = value;
-    return this;
+    m_Accessor = value;         // Works for itkCPU only!!!
+    return *this;
     }
   operator PixelType() const
     {
-    return static_cast< PixelType >( m_Accessor );
+    return m_Accessor;          // Works for itkCPU only!!!
     }
 protected:
   template< typename NTPixelType, unsigned int NVImageDimension > friend class TorchImage;
-
-  TorchPixelHelper( torch::TensorAccessor< DeepScalarType, 0 > &accessor )
-    : m_Accessor( accessor ) { }
-  torch::TensorAccessor< DeepScalarType, PixelDimension > m_Accessor;
+  template< typename NTPixelType, typename NIndexType, typename NSizeType, int NVCurrentAccessorLevel, int NVNumberOfSteps > friend class UniformTorchTensorAccessorHelper;
+  TorchPixelHelper( typename UniformTorchTensorAccessor< DeepScalarType, 0 >::type accessor ) : m_Accessor( accessor )
+    {
+    }
+  typename UniformTorchTensorAccessor< DeepScalarType, PixelDimension >::type m_Accessor;
 };
 
 /** \class TorchPixelHelper
@@ -152,7 +154,7 @@ public:
     NextTorchPixelHelper::AppendSizes( size );
     }
 
-  TorchPixelHelper( torch::TensorAccessor< DeepScalarType, PixelDimension > &accessor )
+  TorchPixelHelper( typename UniformTorchTensorAccessor< DeepScalarType, PixelDimension >::type accessor )
     : m_Accessor( accessor ) { }
   TorchPixelHelper &operator=( const PixelType &value )
     {
@@ -160,19 +162,20 @@ public:
       {
       NextTorchPixelHelper {m_Accessor[i]} = value[i];
       }
-    return this;
+    return *this;
     }
   operator PixelType() const
     {
     PixelType response;
     for( int i = 0; i < Self::NumberOfComponents; ++i )
       {
-      response[i] = static_cast< ValueType >( NextTorchPixelHelper {m_Accessor[i]} );
+      ValueType recursiveResponse = NextTorchPixelHelper {m_Accessor[i]};
+      response[i] = recursiveResponse;
       }
     return response;
     }
 protected:
-  torch::TensorAccessor< DeepScalarType, PixelDimension > m_Accessor;
+  typename UniformTorchTensorAccessor< DeepScalarType, PixelDimension >::type m_Accessor;
 };
 } // end namespace itk
 

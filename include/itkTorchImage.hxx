@@ -19,7 +19,8 @@
 #define itkTorchImage_hxx
 
 #include "itkTorchImage.h"
-#include "itkTorchTensorAccessorHelper.h"
+#include "itkUniformTorchTensorAccessor.h"
+#include "itkUniformTorchTensorAccessorHelper.h"
 
 namespace itk
 {
@@ -52,10 +53,10 @@ TorchImage< TPixel, VImageDimension >
   switch( deviceType )
     {
     case itkCUDA:
-      return ChangeDevice( deviceType, 0 );
+      return this->ChangeDevice( deviceType, 0 );
       break;
     case itkCPU:
-      if( m_DeviceType == torch::kCPU )
+      if( m_DeviceType == itkCPU )
         {
         return true;            // no change
         }
@@ -75,7 +76,7 @@ TorchImage< TPixel, VImageDimension >
   switch( deviceType )
     {
     case itkCUDA:
-      if( m_DeviceType == torch::kCUDA && m_CudaDeviceNumber == cudaDeviceNumber )
+      if( m_DeviceType == itkCUDA && m_CudaDeviceNumber == cudaDeviceNumber )
         {
         return true;            // no change
         }
@@ -84,7 +85,7 @@ TorchImage< TPixel, VImageDimension >
       m_CudaDeviceNumber = cudaDeviceNumber;
       break;
     case itkCPU:
-      return false;     // cudaDeviceNumber not supported for torch::kCPU.
+      return false;     // cudaDeviceNumber not supported for itkCPU.
       break;
     }
 
@@ -98,14 +99,14 @@ TorchImage< TPixel, VImageDimension >
 {
   // Get index components of the pixel, reversing their order so that
   // the first one varies the slowest in the buffer.
-  const SizeType &bufferSize = Superclass::GetBufferedRegion().GetSize();
-  std::vector< int64_t > torchSize( Self::TorchDimension );
+  const SizeType &bufferSize = Self::GetBufferedRegion().GetSize();
+  std::vector< int64_t > torchSize;
   for( SizeValueType i = 0; i < Self::ImageDimension; ++i )
     {
     torchSize.push_back( bufferSize[Self::ImageDimension-1-i] );
     }
   // Append 0 or more dimension sizes representing non-scalar pixels.
-  Self::TorchPixelHelper::AppendSizes( torchSize );
+  Self::TorchImagePixelHelper::AppendSizes( torchSize );
   return torchSize;
 }
 
@@ -157,35 +158,10 @@ void
 TorchImage< TPixel, VImageDimension >
 ::FillBuffer( const TPixel &value )
 {
-  torch::TensorAccessor< DeepScalarType, TorchDimension > accessor
+  typename UniformTorchTensorAccessor< DeepScalarType, TorchDimension >::type accessor
     = m_Tensor.accessor< DeepScalarType, TorchDimension >();
-  const SizeType &bufferSize = Superclass::GetBufferedRegion().GetSize();
-  FillBufferPart< TorchDimension, ImageDimension >( accessor, bufferSize, value );
-}
-
-template< typename TPixel, unsigned int VImageDimension >
-template< int VCurrentAccessorLevel, int VNumberOfSteps >
-void
-TorchImage< TPixel, VImageDimension >
-::FillBufferPart( torch::TensorAccessor< DeepScalarType, VCurrentAccessorLevel > &accessor,
-  const SizeType &bufferSize,
-  const TPixel &value )
-{
-  for( SizeValueType i = 0; i < bufferSize[VNumberOfSteps-1]; ++i )
-    {
-    FillBufferPart< TorchDimension-1, ImageDimension-1 >(accessor[i], bufferSize, value);
-    }
-}
-
-template< typename TPixel, unsigned int VImageDimension >
-template< int VCurrentAccessorLevel >
-void
-TorchImage< TPixel, VImageDimension >
-::FillBufferPart< VCurrentAccessorLevel, 0 >( torch::TensorAccessor< DeepScalarType, VCurrentAccessorLevel > &accessor,
-  const SizeType &bufferSize,
-  const TPixel &value )
-{
-  accessor = value;
+  const SizeType &bufferSize = Self::GetBufferedRegion().GetSize();
+  UniformTorchTensorAccessorHelper< PixelType, IndexType, SizeType, TorchDimension, ImageDimension >::SetAllPixels( accessor, bufferSize, value );
 }
 
 template< typename TPixel, unsigned int VImageDimension >
@@ -193,35 +169,35 @@ void
 TorchImage< TPixel, VImageDimension >
 ::SetPixel( const IndexType & index, const PixelType & value )
 {
-  torch::TensorAccessor< DeepScalarType, TorchDimension > accessor
+  typename UniformTorchTensorAccessor< DeepScalarType, TorchDimension >::type accessor
     = m_Tensor.accessor< DeepScalarType, TorchDimension >();
-  torch::TensorAccessor< DeepScalarType, ImageDimension > pixelAccessor
-    = TorchTensorAccessorHelper< DeepScalarType, IndexType, TorchDimension, ImageDimension >::FindPixel( accessor, index );
-  TorchPixelHelper {pixelAccessor} = value;
+  typename UniformTorchTensorAccessor< DeepScalarType, PixelDimension >::type pixelAccessor
+    = UniformTorchTensorAccessorHelper< PixelType, IndexType, SizeType, TorchDimension, ImageDimension >::FindPixel( accessor, index );
+  TorchImagePixelHelper {pixelAccessor} = value;
 }
 
 template< typename TPixel, unsigned int VImageDimension >
-typename TorchImage< TPixel, VImageDimension >::TorchPixelHelper
+typename TorchImage< TPixel, VImageDimension >::TorchImagePixelHelper
 TorchImage< TPixel, VImageDimension >
 ::GetPixel( const IndexType & index )
 {
-  torch::TensorAccessor< DeepScalarType, TorchDimension > accessor
+  typename UniformTorchTensorAccessor< DeepScalarType, TorchDimension >::type accessor
     = m_Tensor.accessor< DeepScalarType, TorchDimension >();
-  torch::TensorAccessor< DeepScalarType, ImageDimension > pixelAccessor
-    = TorchTensorAccessorHelper< DeepScalarType, IndexType, TorchDimension, ImageDimension >::FindPixel( accessor, index );
-  return TorchPixelHelper {pixelAccessor};
+  typename UniformTorchTensorAccessor< DeepScalarType, PixelDimension >::type pixelAccessor
+    = UniformTorchTensorAccessorHelper< PixelType, IndexType, SizeType, TorchDimension, ImageDimension >::FindPixel( accessor, index );
+  return TorchImagePixelHelper {pixelAccessor};
 }
 
 template< typename TPixel, unsigned int VImageDimension >
-const typename TorchImage< TPixel, VImageDimension >::TorchPixelHelper
+const typename TorchImage< TPixel, VImageDimension >::TorchImagePixelHelper
 TorchImage< TPixel, VImageDimension >
 ::GetPixel( const IndexType & index ) const
 {
-  torch::TensorAccessor< DeepScalarType, TorchDimension > accessor
+  typename UniformTorchTensorAccessor< DeepScalarType, TorchDimension >::type accessor
     = m_Tensor.accessor< DeepScalarType, TorchDimension >();
-  torch::TensorAccessor< DeepScalarType, ImageDimension > pixelAccessor
-    = TorchTensorAccessorHelper< DeepScalarType, IndexType, TorchDimension, ImageDimension >::FindPixel( accessor, index );
-  return TorchPixelHelper {pixelAccessor};
+  typename UniformTorchTensorAccessor< DeepScalarType, PixelDimension >::type pixelAccessor
+    = UniformTorchTensorAccessorHelper< PixelType, IndexType, SizeType, TorchDimension, ImageDimension >::FindPixel( accessor, index );
+  return TorchImagePixelHelper {pixelAccessor};
 }
 
 /** The pointer might be to GPU memory and, if so, could not be
@@ -284,7 +260,7 @@ template< typename TPixel, unsigned int VImageDimension >
 TorchImage< TPixel, VImageDimension >
 ::TorchImage()
 {
-  m_DeviceType = itkCUDA;
+  m_DeviceType = itkCPU;
   m_CudaDeviceNumber = 0;
   // m_Allocated = false;
   m_Tensor = torch::Tensor();
