@@ -1,0 +1,3 @@
+itk_wrap_class("itk::TorchImage" POINTER)
+  set(WRAPPER_TEMPLATES "${itk_Wrap_Image}")
+itk_end_wrap_class()

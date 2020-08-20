@@ -15,315 +15,266 @@
  *  limitations under the License.
  *
  *=========================================================================*/
-
 #ifndef itkTorchImage_h
 #define itkTorchImage_h
 
 #include <torch/torch.h>
-#include "itkImage.h"
-#include "itkTorchImageDataManager.h"
-#include "itkVersion.h"
-#include "itkObjectFactoryBase.h"
-#include "itkRGBPixel.h"
-#include "itkRGBAPixel.h"
-#include "itkVector.h"
-#include "itkCovariantVector.h"
+#include "itkImageBase.h"
+#include "itkTorchPixelHelper.h"
 
 namespace itk
 {
 /** \class TorchImage
- *  \brief Templated n-dimensional image class for the GPU.
+ *  \brief Templated n-dimensional torch image class.
  *
- * Derived from itk Image class to use with GPU image filters.
- * This class manages both CPU and GPU memory implicitly, and
- * can be used with non-GPU itk filters as well. Memory transfer
- * between CPU and GPU is done automatically and implicitly.
+ * TorchImages are templated over a pixel type (modeling the dependent
+ * variables), and a dimension (number of independent variables).  The
+ * container for the pixel data is a torch::Tensor.
  *
- * \ingroup ITKTorchCommon
+ * Within the pixel container, torch images are modelled as arrays,
+ * defined by a start index and a size.
+ *
+ * ImageBase, defines the geometry of the torch image in terms of
+ * where the torch image sits in physical space, how the torch image
+ * is oriented in physical space, the size of a pixel, and the extent
+ * of the torch image itself.  ImageBase provides the methods to
+ * convert between the index and physical space coordinate frames.
+ *
+ * Pixels can be accessed directly using the SetPixel() and GetPixel()
+ * methods or can be accessed via iterators that define the region of
+ * the torch image they traverse.
+ *
+ * The pixel type may be one of the native types; a Insight-defined
+ * class type such as Vector; or a user-defined type. Note that
+ * depending on the type of pixel that you use, the process objects
+ * (i.e., those filters processing data objects) may not operate on
+ * the torch image and/or pixel type. This becomes apparent at
+ * compile-time because operator overloading (for the pixel type) is
+ * not supported.
+ *
+ * The data in an torch image is arranged in a 1D array as
+ * [][][][slice][row][col] with the column index varying most rapidly.
+ * The Index type reverses the order so that with Index[0] = col,
+ * Index[1] = row, Index[2] = slice, ...
+ *
+ * \sa ImageBase
+ *
+ * \ingroup PyTorch
+ *
  */
 template< typename TPixel, unsigned int VImageDimension = 2 >
-class ITK_TEMPLATE_EXPORT TorchImage : public Image< TPixel, VImageDimension >
+class ITK_TEMPLATE_EXPORT TorchImage : public ImageBase< VImageDimension >
 {
 public:
   ITK_DISALLOW_COPY_AND_ASSIGN( TorchImage );
 
+  /** Standard class type aliases */
   using Self = TorchImage;
-  using Superclass = Image< TPixel, VImageDimension >;
+  using Superclass = ImageBase< VImageDimension >;
   using Pointer = SmartPointer< Self >;
   using ConstPointer = SmartPointer< const Self >;
   using ConstWeakPointer = WeakPointer< const Self >;
 
+  /** Method for creation through the object factory. */
   itkNewMacro( Self );
 
-  itkTypeMacro( TorchImage, Image );
+  /** Run-time type information (and related methods). */
+  itkTypeMacro( TorchImage, ImageBase );
 
-  using PixelType = typename Superclass::PixelType;
-  using InternalPixelType = typename Superclass::InternalPixelType;
-  using IOPixelType = typename Superclass::IOPixelType;
-  using DirectionType = typename Superclass::DirectionType;
-  using SpacingType = typename Superclass::SpacingType;
-  using PixelContainer = typename Superclass::PixelContainer;
-  using SizeType = typename Superclass::SizeType;
-  using SizeValueType = typename SizeType::SizeValueType;
-  using IndexType = typename Superclass::IndexType;
-  using OffsetType = typename Superclass::OffsetType;
-  using RegionType = typename Superclass::RegionType;
-  using PixelContainerPointer = typename PixelContainer::Pointer;
-  using PixelContainerConstPointer = typename PixelContainer::ConstPointer;
+  /** Pixel type alias support. Used to declare pixel type in filters
+   * or other operations. */
+  using PixelType = TPixel;
 
-  using AccessorType = typename Superclass::AccessorType;
-  using AccessorFunctorType = DefaultPixelAccessorFunctor< Self >;
-  using NeighborhoodAccessorFunctorType = NeighborhoodAccessorFunctor< Self >;
-  // NeighborhoodAccessorFunctorType;
-
-  // For the default case that the number of vector components is not determined at compile time:
-  // We define our own void_t because it is C++-17; we do it in a way that works even for C++14.
-  template< typename... Ts > struct myMake_void { typedef void type; };
-  template< typename... Ts > using myVoid_t = typename myMake_void< Ts... >::type;
-
-  template< typename TPixelType, typename = void >
-  struct PixelHelper
-    {
-    using PixelType = TPixelType;
-    using ValueType = typename PixelType::ValueType;
-    static constexpr SizeValueType NumberOfComponents = -1;
-    using PixelTypeIsVectorType = int;
-    static PixelType pixelInstance( unsigned numberOfComponents ) { return PixelType {numberOfComponents}; }
-    };
-  // For the case that the number of colors is implicitly set to 1 at compile time:
-  template< typename TPixelType >
-  struct PixelHelper< TPixelType, myVoid_t< typename std::enable_if< std::is_arithmetic< TPixelType >::value >::type > >
-    {
-    using PixelType = TPixelType;
-    using ValueType = PixelType;
-    static constexpr SizeValueType NumberOfComponents = 1;
-    using PixelTypeIsScalarType = int;
-    static PixelType pixelInstance( unsigned numberOfComponents ) { return PixelType {}; }
-    };
-  // For the case that the pixel type is RGBPixel:
-  template< typename TScalar>
-  struct PixelHelper< RGBPixel< TScalar >, void >
-    {
-    using PixelType = RGBPixel< TScalar >;
-    using ValueType = typename PixelType::ValueType;
-    static constexpr SizeValueType NumberOfComponents = 3;
-    using PixelTypeIsVectorType = int;
-    static PixelType pixelInstance( unsigned numberOfComponents ) { return PixelType {}; }
-    };
-  // For the case that the pixel type is RGBAPixel:
-  template< typename TScalar>
-  struct PixelHelper< RGBAPixel< TScalar >, void >
-    {
-    using PixelType = RGBAPixel< TScalar >;
-    using ValueType = typename PixelType::ValueType;
-    static constexpr SizeValueType NumberOfComponents = 4;
-    using PixelTypeIsVectorType = int;
-    static PixelType pixelInstance( unsigned numberOfComponents ) { return PixelType {}; }
-    };
-  // For the cases that the pixel type is Vector or CovariantVector:
-  template< typename TScalar, unsigned int NVectorComponent >
-  struct PixelHelper< Vector< TScalar, NVectorComponent >, void >
-    {
-    using PixelType = Vector< TScalar, NVectorComponent >;
-    using ValueType = typename PixelType::ValueType;
-    static constexpr SizeValueType NumberOfComponents = NVectorComponent;
-    using PixelTypeIsVectorType = int;
-    static PixelType pixelInstance( unsigned numberOfComponents ) { return PixelType {}; }
-    };
-  template< typename TScalar, unsigned int NVectorComponent >
-  struct PixelHelper< CovariantVector< TScalar, NVectorComponent >, void >
-    {
-    using PixelType = CovariantVector< TScalar, NVectorComponent >;
-    using ValueType = typename PixelType::ValueType;
-    static constexpr SizeValueType NumberOfComponents = NVectorComponent;
-    using PixelTypeIsVectorType = int;
-    static PixelType pixelInstance( unsigned numberOfComponents ) { return PixelType {}; }
-    };
-
-  using ValueType = typename PixelHelper< PixelType >::ValueType;
+  /** Number of dimensions */
   static constexpr unsigned int ImageDimension = VImageDimension;
-  static constexpr auto pixelInstance = PixelHelper< PixelType >::pixelInstance;
 
-  // A pixel value may be a basic type (integer, real), or a class (RGB, RGBA, Vector, CovariantVector) whose value
-  // types are, recursively pixel types.  DimensionHelper can handle all cases that PixelHelper knows about.
-  // For the case that the TPixelType is not known by PixelHelper:
-  template< typename TPixelType, typename = void >
-  struct DimensionHelper
-    {
-    };
-  // For the case that the TPixelType is known by PixelHelper to be a scalar type:
-  template< typename TPixelType >
-  struct DimensionHelper< TPixelType, myVoid_t< typename PixelHelper< TPixelType >::PixelTypeIsScalarType > >
-    {
-    using PixelType = TPixelType;
-    using DeepScalarType = PixelType;
-    static constexpr unsigned int TorchDimension = 0;
-    static void AppendSizes( std::vector< int64_t > &size ) {/* Nothing to append */}
-    };
-  // For the case that the TPixelType is known by PixelHelper to be a vector type:
-  template< typename TPixelType >
-  struct DimensionHelper< TPixelType, myVoid_t< typename PixelHelper< TPixelType >::PixelTypeIsVectorType > >
-    {
-    using PixelType = TPixelType;
-    using DeepScalarType = typename DimensionHelper< typename PixelHelper< PixelType >::ValueType >::DeepScalarType;
-    static constexpr unsigned int TorchDimension = 1 + DimensionHelper< typename PixelHelper< PixelType >::ValueType >::TorchDimension;
-    static void AppendSizes( std::vector< int64_t > &size )
-      {
-      size.push_back( PixelHelper< PixelType >::NumberOfComponents );
-      // Recurse
-      DimensionHelper< typename PixelHelper< PixelType >::ValueType >::AppendSizes( size );
-      }
-    };
-  using DeepScalarType = typename DimensionHelper< PixelType >::DeepScalarType;
-  static constexpr at::ScalarType TorchValueType = c10::impl::CPPTypeToScalarType< DeepScalarType >::value;
-  static constexpr unsigned int TorchDimension = ImageDimension + DimensionHelper< PixelType >::TorchDimension;
+  /** Typedef alias for PixelType */
+  using ValueType = TPixel;
 
-  /** Allocate CPU and GPU memory space */
-  virtual void Allocate( bool initialize = false ) override;
+  /** Internal Pixel representation. Used to maintain a uniform API
+   * with Image Adaptors and allow to keep a particular internal
+   * representation of data while showing a different external
+   * representation. */
+  using InternalPixelType = TPixel;
 
-  virtual void AllocateGPU();
+  using IOPixelType = PixelType;
 
-  virtual void Initialize() override;
+  /** Type of image dimension */
+  using ImageDimensionType = typename Superclass::ImageDimensionType;
 
-  void FillBuffer( const TPixel &value );
+  /** Index type alias support. An index is used to access pixel values. */
+  using IndexType = typename Superclass::IndexType;
+  using IndexValueType = typename Superclass::IndexValueType;
 
-  void SetPixel( const IndexType &index, const TPixel &value );
+  /** Offset type alias support. An offset is used to access pixel values. */
+  using OffsetType = typename Superclass::OffsetType;
 
-  const TPixel &GetPixel( const IndexType &index ) const;
+  /** Size type alias support. A size is used to define region bounds. */
+  using SizeType = typename Superclass::SizeType;
+  using SizeValueType = typename Superclass::SizeValueType;
 
-  TPixel &GetPixel( const IndexType &index );
+  /** Direction type alias support. A matrix of direction cosines. */
+  using DirectionType = typename Superclass::DirectionType;
 
-  const TPixel &operator[]( const IndexType &index ) const;
-
-  TPixel &operator[]( const IndexType &index );
-
-  /** Explicit synchronize CPU/GPU buffers */
-  virtual void UpdateBuffers();
-
-  /** Explicit synchronize CPU/GPU buffers */
-  virtual void UpdateCPUBuffer();
-
-  virtual void UpdateGPUBuffer();
-
-  /** Get CPU buffer pointer */
-  virtual TPixel *GetBufferPointer() override;
-
-  virtual const TPixel *GetBufferPointer() const override;
-
-  /** Return the Pixel Accessor object */
-  AccessorType GetPixelAccessor()
-  {
-    m_DataManager->SetGPUBufferStale();
-    return Superclass::GetPixelAccessor();
-  }
-
-
-  /** Return the Pixel Accesor object */
-  const AccessorType GetPixelAccessor() const
-  {
-    m_DataManager->UpdateCPUBuffer();
-    return Superclass::GetPixelAccessor();
-  }
-
-
-  /** Return the NeighborhoodAccessor functor */
-  NeighborhoodAccessorFunctorType GetNeighborhoodAccessor()
-  {
-    m_DataManager->SetGPUBufferStale();
-    return NeighborhoodAccessorFunctorType();
-  }
-
-
-  /** Return the NeighborhoodAccessor functor */
-  const NeighborhoodAccessorFunctorType GetNeighborhoodAccessor() const
-  {
-    m_DataManager->UpdateCPUBuffer();
-    return NeighborhoodAccessorFunctorType();
-  }
-
-
-  void SetPixelContainer( PixelContainer *container );
-
-  /** Return a pointer to the container. */
-  PixelContainer *GetPixelContainer()
-  {
-    m_DataManager->SetGPUBufferStale();
-    return Superclass::GetPixelContainer();
-  }
-
-
-  const PixelContainer *GetPixelContainer() const
-  {
-    m_DataManager->UpdateCPUBuffer();
-    return Superclass::GetPixelContainer();
-  }
-
-
-  /** Override DataHasBeenGenerated() in DataObject class.
-   * We need this because CPU time stamp is always bigger
-   * than GPU's. That is because Modified() is called at
-   * the end of each filter in the pipeline so although we
-   * increment GPU's time stamp in GPUGenerateData() the
-   * CPU's time stamp will be increased after that.
+  /** Region type alias support. A region is used to specify a subset of an image.
    */
-  virtual void DataHasBeenGenerated() override
-  {
-    Superclass::DataHasBeenGenerated();
+  using RegionType = typename Superclass::RegionType;
 
-    if( m_DataManager->IsCPUBufferStale() )
+  /** Spacing type alias support.  Spacing holds the size of a pixel.  The
+   * spacing is the geometric distance between image samples. */
+  using SpacingType = typename Superclass::SpacingType;
+  using SpacingValueType = typename Superclass::SpacingValueType;
+
+  /** Origin type alias support.  The origin is the geometric coordinates
+   * of the index (0,0). */
+  using PointType = typename Superclass::PointType;
+
+  /** Offset type alias (relative position between indices) */
+  using OffsetValueType = typename Superclass::OffsetValueType;
+
+  /**
+   * example usage:
+   * using OutputImageType = typename ImageType::template Rebind< float >::Type;
+   *
+   * \deprecated Use RebindImageType instead
+   */
+  template< typename UPixelType, unsigned int NUImageDimension = ImageDimension >
+  struct Rebind
+  {
+    using Type = itk::TorchImage< UPixelType, NUImageDimension >;
+  };
+
+  template< typename UPixelType, unsigned int NUImageDimension = ImageDimension >
+  using RebindImageType = itk::TorchImage< UPixelType, NUImageDimension >;
+
+  using TorchImagePixelHelper = TorchPixelHelper< PixelType >;
+  using DeepScalarType = typename TorchImagePixelHelper::DeepScalarType;
+  static constexpr unsigned int PixelDimension = TorchImagePixelHelper::PixelDimension;
+  static constexpr unsigned int TorchDimension = ImageDimension + PixelDimension;
+
+  enum DeviceType { itkCPU, itkCUDA };
+
+  /** Select itkCUDA (on device #0) or itkCPU */
+  bool ChangeDevice( DeviceType deviceType );
+  /** Select itkCUDA and a device number */
+  bool ChangeDevice( DeviceType deviceType, int64_t cudaDeviceNumber );
+
+  /** Allocate the torch image memory. The size of the torch image
+   * must already be set, e.g. by calling SetRegions(). */
+  void Allocate( bool initializePixels = false );
+
+  /** Restore the data object to its initial state. This means releasing
+   * memory. */
+  void Initialize() override;
+
+  /** Fill the torch image buffer with a value.  Be sure to call
+   * Allocate() first. This version is for pixel types that are not
+   * simple scalars. */
+  void FillBuffer( const PixelType &value );
+
+  /** \brief Set a pixel value.
+   *
+   * Allocate() needs to have been called first -- for efficiency,
+   * this function does not check that the torch image has actually
+   * been allocated yet. */
+  void SetPixel( const IndexType & index, const PixelType & value );
+
+  /** \brief Get a reference to a pixel (e.g. for editing).
+   *
+   * For efficiency, this function does not check that the
+   * torch image has actually been allocated yet. */
+  TorchImagePixelHelper GetPixel( const IndexType & index );
+  const TorchImagePixelHelper GetPixel( const IndexType & index ) const;
+
+  /** \brief Access a pixel. This version can be an lvalue.
+   *
+   * For efficiency, this function does not check that the
+   * torch image has actually been allocated yet. */
+  TorchImagePixelHelper operator[]( const IndexType & index )
     {
-      m_DataManager->Modified();
+    return this->GetPixel( index );
     }
 
-  }
+  const TorchImagePixelHelper operator[]( const IndexType & index ) const
+    {
+    return this->GetPixel( index );
+    }
 
+  /** The pointer might be to GPU memory and, if so, could not be
+   * dereferenced */
+  virtual TPixel *GetBufferPointer();
 
-  /** Graft the data and information from one TorchImage to another. */
-  virtual void Graft( const DataObject *data ) override;
+  /** The pointer might be to GPU memory and, if so, could not be
+   * dereferenced */
+  virtual const TPixel *GetBufferPointer() const;
 
-  virtual void GraftITKImage( const DataObject *data );
+  /** Graft the data and information from one image to another. This
+   * is a convenience method to setup a second image with all the meta
+   * information of another image and use the same pixel
+   * container. Note that this method is different than just using two
+   * SmartPointers to the same image since separate DataObjects are
+   * still maintained. This method is similar to
+   * ImageSource::GraftOutput(). The implementation in ImageBase
+   * simply calls CopyInformation() and copies the region ivars.
+   * The implementation here refers to the superclass' implementation
+   * and then copies over the pixel container. */
+  virtual void Graft( const Self * data );
 
-  /** Whenever the image has been modified, set the GPU Buffer to stale */
-  virtual void Modified() const;
-
-  /** Get matrices intended to help with the conversion of Index coordinates
-   *  to PhysicalPoint coordinates */
-  itkGetConstReferenceMacro( IndexToPhysicalPoint, DirectionType );
-  itkGetConstReferenceMacro( PhysicalPointToIndex, DirectionType );
+  constexpr unsigned int GetNumberOfComponentsPerPixel() const override
+    {
+    return Self::TorchImagePixelHelper::NumberOfComponents;
+    }
 
 protected:
-
   TorchImage();
-  virtual ~TorchImage() {}
+  ~TorchImage() override = default;
+  void PrintSelf( std::ostream & os, Indent indent ) const override;
+  void Graft( const DataObject * data ) override;
 
-  virtual void PrintSelf( std::ostream &os, Indent indent ) const override;
+  /** Recursively fill part of the full buffer */
+  void FillBufferPart( int CurrentDimensions, const SizeType &BufferSize, std::vector< int64_t > &TorchIndex, const PixelType &value );
+
+  /** The enum representation of the data type in the underlying torch
+   * library. */
+  static constexpr at::ScalarType TorchValueType = c10::impl::CPPTypeToScalarType< DeepScalarType >::value;
+
+  /** The first dimension of an image index varies the quickest in the
+   * underlying buffer with ITK generally (e.g. class Image) but the
+   * first dimension varies slowest with the underlying C++ Torch
+   * library, so the index components of this TorchSize are in reverse
+   * order compared to the rest of ITK.  Additionally, TorchImage
+   * represents a non-scalar pixel type as an additional dimension in
+   * the last position, with size equal to the number of components of
+   * the non-scalar pixel type, and varying faster than the index
+   * dimensions.  The non-scalar pixel representation is recursive in
+   * that a non-scalar pixel type A with X components that are a
+   * non-scalar pixel type B with Y components would have dimensions
+   * of size X and Y beyond the index, with the dimension for B being
+   * last and varying the fastest in the underlying buffer. */
+  std::vector< int64_t > ComputeTorchSize() const;
+
+  /** Support the ImageBase::Graft methods.
+   */
+  using Superclass::Graft;
 
 private:
+  /** itkCUDA or itkCPU */
+  DeviceType m_DeviceType;
 
-  typename TorchImageDataManager< TorchImage >::Pointer m_DataManager;
+  /** Whether tensor has been allocated */
+  bool m_Allocated;
 
-  bool m_Graft;
+  /** Defaults to zero */
+  int64_t m_CudaDeviceNumber;
+
+  /** The torch::Tensor object points to the pixel data and also
+   * stores information about size, data type, device, etc. */
+  torch::Tensor m_Tensor;
 };
-
-//------------------------------------------------------------------------------
-template< typename T >
-class ITK_TEMPLATE_EXPORT TorchTraits
-{
-public:
-  using Type = T;
-};
-
-template< typename TPixelType, unsigned int NDimension >
-class ITK_TEMPLATE_EXPORT TorchTraits< Image< TPixelType, NDimension > >
-{
-public:
-  using Type = TorchImage< TPixelType, NDimension >;
-};
-
 } // end namespace itk
 
 #ifndef ITK_MANUAL_INSTANTIATION
-#include "itkTorchImage.hxx"
+#  include "itkTorchImage.hxx"
 #endif
 
 #endif
