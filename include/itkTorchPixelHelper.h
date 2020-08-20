@@ -18,9 +18,6 @@
 #ifndef itkTorchPixelHelper_h
 #define itkTorchPixelHelper_h
 
-#include <torch/torch.h>
-#include "itkUniformTorchTensorAccessor.h"
-
 namespace itk
 {
 // We define our own void_t so that we do not have to require C++-17;
@@ -30,6 +27,8 @@ struct TorchMakeVoid { using type = void; };
 template< typename... Ts >
 using TorchVoid_t = typename TorchMakeVoid< Ts... >::type;
 } // end anonymous namespace
+
+#include <torch/torch.h>
 
 namespace itk
 {
@@ -59,11 +58,9 @@ class TorchPixelHelper
 public:
   using Self = TorchPixelHelper;
   using PixelType = TPixelType;
-#if 0
-  static constexpr int64_t NumberOfComponents = 0; // COMP: make compiler happy
-  static constexpr int64_t SizeOf = 0; // COMP: make compiler happy
-  static constexpr unsigned int PixelDimension = 0; // COMP: make compiler happy
-#endif
+  static constexpr int64_t NumberOfComponents = 0;
+  static constexpr int64_t SizeOf = 0;
+  static constexpr unsigned int PixelDimension = 0;
 };
 
 /** \class TorchPixelHelper
@@ -100,20 +97,30 @@ public:
 
   TorchPixelHelper &operator=( const PixelType &value )
     {
-    m_Accessor = value;         // Works for itkCPU only!!!
+    torch::Tensor Tensor = m_Tensor;
+    for( int64_t i : m_TorchIndex )
+      {
+      Tensor = Tensor[i];
+      }
+    Tensor.index_put_( {}, value );
     return *this;
     }
   operator PixelType() const
     {
-    return m_Accessor;          // Works for itkCPU only!!!
+    torch::Tensor Tensor = m_Tensor;
+    for( int64_t i : m_TorchIndex )
+      {
+      Tensor = Tensor[i];
+      }
+    return Tensor.item< DeepScalarType >();
     }
 protected:
   template< typename NTPixelType, unsigned int NVImageDimension > friend class TorchImage;
-  template< typename NTPixelType, typename NIndexType, typename NSizeType, int NVCurrentAccessorLevel, int NVNumberOfSteps > friend class UniformTorchTensorAccessorHelper;
-  TorchPixelHelper( typename UniformTorchTensorAccessor< DeepScalarType, 0 >::type accessor ) : m_Accessor( accessor )
+  TorchPixelHelper( torch::Tensor Tensor, std::vector< int64_t > &TorchIndex ) : m_Tensor( Tensor ), m_TorchIndex( TorchIndex )
     {
     }
-  typename UniformTorchTensorAccessor< DeepScalarType, PixelDimension >::type m_Accessor;
+  torch::Tensor m_Tensor;
+  mutable std::vector< int64_t > m_TorchIndex;
 };
 
 /** \class TorchPixelHelper
@@ -154,13 +161,13 @@ public:
     NextTorchPixelHelper::AppendSizes( size );
     }
 
-  TorchPixelHelper( typename UniformTorchTensorAccessor< DeepScalarType, PixelDimension >::type accessor )
-    : m_Accessor( accessor ) { }
   TorchPixelHelper &operator=( const PixelType &value )
     {
     for( int i = 0; i < Self::NumberOfComponents; ++i )
       {
-      NextTorchPixelHelper {m_Accessor[i]} = value[i];
+      m_TorchIndex.push_back( i );
+      NextTorchPixelHelper { m_Tensor, m_TorchIndex } = value[i];
+      m_TorchIndex.pop_back();
       }
     return *this;
     }
@@ -169,13 +176,20 @@ public:
     PixelType response;
     for( int i = 0; i < Self::NumberOfComponents; ++i )
       {
-      ValueType recursiveResponse = NextTorchPixelHelper {m_Accessor[i]};
-      response[i] = recursiveResponse;
+      m_TorchIndex.push_back( i );
+      response[i] = NextTorchPixelHelper { m_Tensor, m_TorchIndex };
+      m_TorchIndex.pop_back();
       }
     return response;
     }
+
 protected:
-  typename UniformTorchTensorAccessor< DeepScalarType, PixelDimension >::type m_Accessor;
+  template< typename NTPixelType, unsigned int NVImageDimension > friend class TorchImage;
+  TorchPixelHelper( torch::Tensor Tensor, std::vector< int64_t > &TorchIndex ) : m_Tensor( Tensor ), m_TorchIndex( TorchIndex )
+    {
+    }
+  torch::Tensor m_Tensor;
+  mutable std::vector< int64_t > m_TorchIndex;
 };
 } // end namespace itk
 

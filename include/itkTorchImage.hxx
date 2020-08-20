@@ -19,8 +19,6 @@
 #define itkTorchImage_hxx
 
 #include "itkTorchImage.h"
-#include "itkUniformTorchTensorAccessor.h"
-#include "itkUniformTorchTensorAccessorHelper.h"
 
 namespace itk
 {
@@ -61,7 +59,10 @@ TorchImage< TPixel, VImageDimension >
         return true;            // no change
         }
       // Change from GPU to CPU
-      m_Tensor = m_Tensor.to( torch::kCPU );
+      if( m_Allocated )
+        {
+        m_Tensor = m_Tensor.to( torch::kCPU );
+        }
       m_DeviceType = deviceType;
     }
 
@@ -80,7 +81,10 @@ TorchImage< TPixel, VImageDimension >
         {
         return true;            // no change
         }
-      m_Tensor = m_Tensor.to( torch::kCUDA, cudaDeviceNumber );
+      if( m_Allocated )
+        {
+        m_Tensor = m_Tensor.to( torch::kCUDA, cudaDeviceNumber );
+        }
       m_DeviceType = deviceType;
       m_CudaDeviceNumber = cudaDeviceNumber;
       break;
@@ -115,7 +119,9 @@ void
 TorchImage< TPixel, VImageDimension >
 ::Allocate( bool initializePixels )
 {
-  Superclass::Allocate( initializePixels );
+  // itkImage does not call Superclass::Allocate.  Should we?
+  // Superclass::Allocate( initializePixels );
+
   // Non-scalar pixel types are represented as additional dimensions in the torch image.
   const std::vector< int64_t > torchSize = this->ComputeTorchSize();
 
@@ -139,8 +145,7 @@ TorchImage< TPixel, VImageDimension >
     {
     m_Tensor = torch::empty( torchSize, tensorOptions );
     }
-
-  // m_Allocated = true;
+  m_Allocated = true;
 }
 
 template< typename TPixel, unsigned int VImageDimension >
@@ -148,20 +153,57 @@ void
 TorchImage< TPixel, VImageDimension >
 ::Initialize()
 {
-  m_Tensor = torch::Tensor();
+  //
+  // We don't modify ourselves because the "ReleaseData" methods depend upon
+  // no modification when initialized.
+  //
+
+  // Call the superclass which should initialize the BufferedRegion ivar.
   Superclass::Initialize();
-  // m_Allocated = false;
+
+  // Replace the handle to the buffer. This is the safest thing to do,
+  // since the same container can be shared by multiple images (e.g.
+  // Grafted outputs and in place filters).
+  m_Tensor = torch::Tensor();
+  m_Allocated = false;
 }
 
 template< typename TPixel, unsigned int VImageDimension >
 void
 TorchImage< TPixel, VImageDimension >
-::FillBuffer( const TPixel &value )
+::FillBuffer( const PixelType &value )
 {
-  typename UniformTorchTensorAccessor< DeepScalarType, TorchDimension >::type accessor
-    = m_Tensor.accessor< DeepScalarType, TorchDimension >();
-  const SizeType &bufferSize = Self::GetBufferedRegion().GetSize();
-  UniformTorchTensorAccessorHelper< PixelType, IndexType, SizeType, TorchDimension, ImageDimension >::SetAllPixels( accessor, bufferSize, value );
+  if /* constexpr */ ( PixelDimension == 0 )
+    {
+    m_Tensor.fill_( value );
+    }
+  else
+    {
+    const SizeType &bufferSize = Self::GetBufferedRegion().GetSize();
+    std::vector< int64_t > TorchIndex;
+    FillBufferPart( Self::ImageDimension, bufferSize, TorchIndex, value );
+    }
+}
+
+template< typename TPixel, unsigned int VImageDimension >
+void
+TorchImage< TPixel, VImageDimension >
+::FillBufferPart( int CurrentDimensions, const SizeType &BufferSize, std::vector< int64_t > &TorchIndex, const PixelType &value )
+{
+  if( CurrentDimensions == 0 )
+    {
+    TorchImagePixelHelper {m_Tensor, TorchIndex} = value;
+    }
+  else
+    {
+    // Slowest varying dimension in BufferSize is last
+    for( SizeValueType i = 0; i < BufferSize[CurrentDimensions-1]; ++i )
+      {
+      TorchIndex.push_back( i );
+      FillBufferPart( CurrentDimensions-1, BufferSize, TorchIndex, value );
+      TorchIndex.pop_back();
+      }
+    }
 }
 
 template< typename TPixel, unsigned int VImageDimension >
@@ -169,11 +211,7 @@ void
 TorchImage< TPixel, VImageDimension >
 ::SetPixel( const IndexType & index, const PixelType & value )
 {
-  typename UniformTorchTensorAccessor< DeepScalarType, TorchDimension >::type accessor
-    = m_Tensor.accessor< DeepScalarType, TorchDimension >();
-  typename UniformTorchTensorAccessor< DeepScalarType, PixelDimension >::type pixelAccessor
-    = UniformTorchTensorAccessorHelper< PixelType, IndexType, SizeType, TorchDimension, ImageDimension >::FindPixel( accessor, index );
-  TorchImagePixelHelper {pixelAccessor} = value;
+  GetPixel( index ) = value;
 }
 
 template< typename TPixel, unsigned int VImageDimension >
@@ -181,11 +219,12 @@ typename TorchImage< TPixel, VImageDimension >::TorchImagePixelHelper
 TorchImage< TPixel, VImageDimension >
 ::GetPixel( const IndexType & index )
 {
-  typename UniformTorchTensorAccessor< DeepScalarType, TorchDimension >::type accessor
-    = m_Tensor.accessor< DeepScalarType, TorchDimension >();
-  typename UniformTorchTensorAccessor< DeepScalarType, PixelDimension >::type pixelAccessor
-    = UniformTorchTensorAccessorHelper< PixelType, IndexType, SizeType, TorchDimension, ImageDimension >::FindPixel( accessor, index );
-  return TorchImagePixelHelper {pixelAccessor};
+  std::vector< int64_t > TorchIndex;
+  for( SizeValueType i = 0; i < Self::ImageDimension; ++i )
+    {
+    TorchIndex.push_back( index[Self::ImageDimension-1-i] );
+    }
+  return TorchImagePixelHelper { m_Tensor, TorchIndex };
 }
 
 template< typename TPixel, unsigned int VImageDimension >
@@ -193,14 +232,15 @@ const typename TorchImage< TPixel, VImageDimension >::TorchImagePixelHelper
 TorchImage< TPixel, VImageDimension >
 ::GetPixel( const IndexType & index ) const
 {
-  typename UniformTorchTensorAccessor< DeepScalarType, TorchDimension >::type accessor
-    = m_Tensor.accessor< DeepScalarType, TorchDimension >();
-  typename UniformTorchTensorAccessor< DeepScalarType, PixelDimension >::type pixelAccessor
-    = UniformTorchTensorAccessorHelper< PixelType, IndexType, SizeType, TorchDimension, ImageDimension >::FindPixel( accessor, index );
-  return TorchImagePixelHelper {pixelAccessor};
+  std::vector< int64_t > TorchIndex;
+  for( SizeValueType i = 0; i < Self::ImageDimension; ++i )
+    {
+    TorchIndex.push_back( index[Self::ImageDimension-1-i] );
+    }
+  return TorchImagePixelHelper { m_Tensor, TorchIndex };
 }
 
-/** The pointer might be to GPU memory and, if so, could not be
+/** The pointer might be to GPU memory and, if so, cannot be directly
  * dereferenced */
 template< typename TPixel, unsigned int VImageDimension >
 TPixel *
@@ -210,7 +250,7 @@ TorchImage< TPixel, VImageDimension >
   return reinterpret_cast< TPixel * >( m_Tensor.data_ptr< DeepScalarType >() );
 }
 
-/** The pointer might be to GPU memory and, if so, could not be
+/** The pointer might be to GPU memory and, if so, cannot be directly
  * dereferenced */
 template< typename TPixel, unsigned int VImageDimension >
 const TPixel *
@@ -228,9 +268,11 @@ TorchImage< TPixel, VImageDimension >
   Superclass::Graft( data );
   m_DeviceType = data->m_DeviceType;
   m_CudaDeviceNumber = data->m_CudaDeviceNumber;
-  // m_Allocated = data->m_Allocated;
-  m_Tensor = torch::from_blob( data->m_Tensor.data_ptr(), data->m_Tensor.sizes(), data->m_Tensor.options() );
-  // m_Grafted = data->m_Grafted;
+  m_Allocated = data->m_Allocated;
+  if( m_Allocated )
+    {
+    m_Tensor = torch::from_blob( data->m_Tensor.data_ptr(), data->m_Tensor.sizes(), data->m_Tensor.options() );
+    }
 }
 
 template< typename TPixel, unsigned int VImageDimension >
@@ -260,11 +302,10 @@ template< typename TPixel, unsigned int VImageDimension >
 TorchImage< TPixel, VImageDimension >
 ::TorchImage()
 {
-  m_DeviceType = itkCPU;
+  m_DeviceType = itkCUDA;
+  m_Allocated = false;
   m_CudaDeviceNumber = 0;
-  // m_Allocated = false;
   m_Tensor = torch::Tensor();
-  // m_Grafted = false;
 }
 
 template< typename TPixel, unsigned int VImageDimension >
@@ -275,24 +316,11 @@ TorchImage< TPixel, VImageDimension >
   Superclass::PrintSelf(os, indent);
   os
     << indent << "m_DeviceType: " << m_DeviceType << std::endl
+    << indent << "m_Allocated: " << m_Allocated << std::endl
     << indent << "m_CudaDeviceNumber: " << m_CudaDeviceNumber << std::endl
-    // << indent << "m_Allocated: " << m_Allocated << std::endl
-    //!!! << indent << "m_Tensor: " << m_Tensor << std::endl
-    // << indent << "m_Grafted: " << m_Grafted << std::endl
+    // << indent << "m_Tensor: " << m_Tensor << std::endl
     ;
 }
-
-template <typename TPixel, unsigned int VImageDimension>
-void
-TorchImage<TPixel, VImageDimension>
-::ComputeIndexToPhysicalPointMatrices()
-{
-  this->Superclass::ComputeIndexToPhysicalPointMatrices();
-}
-
-// Implement ComputeOffsetTable?!!!
-
-// Do we need this->Modified calls()?!!!
 
 } // end namespace itk
 

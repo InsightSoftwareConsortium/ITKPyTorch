@@ -167,9 +167,10 @@ public:
    * memory. */
   void Initialize() override;
 
-  /** Fill the torch image buffer with a value.  Be sure to call Allocate()
-   * first. */
-  void FillBuffer( const TPixel &value );
+  /** Fill the torch image buffer with a value.  Be sure to call
+   * Allocate() first. This version is for pixel types that are not
+   * simple scalars. */
+  void FillBuffer( const PixelType &value );
 
   /** \brief Set a pixel value.
    *
@@ -226,18 +227,12 @@ public:
 
 protected:
   TorchImage();
+  ~TorchImage() override = default;
   void PrintSelf( std::ostream & os, Indent indent ) const override;
   void Graft( const DataObject * data ) override;
 
-  ~TorchImage() override = default;
-
-  /** Compute helper matrices used to transform Index coordinates to
-   * PhysicalPoint coordinates and back. This method is virtual and will be
-   * overloaded in derived classes in order to provide backward compatibility
-   * behavior in classes that did not used to take image orientation into
-   * account.  */
-  // Do something with this!!!
-  void ComputeIndexToPhysicalPointMatrices() override;
+  /** Recursively fill part of the full buffer */
+  void FillBufferPart( int CurrentDimensions, const SizeType &BufferSize, std::vector< int64_t > &TorchIndex, const PixelType &value );
 
   /** The enum representation of the data type in the underlying torch
    * library. */
@@ -263,22 +258,18 @@ protected:
   using Superclass::Graft;
 
 private:
-  /** E.g. torch::kCUDA or torch::kCPU */
+  /** itkCUDA or itkCPU */
   DeviceType m_DeviceType;
+
+  /** Whether tensor has been allocated */
+  bool m_Allocated;
 
   /** Defaults to zero */
   int64_t m_CudaDeviceNumber;
 
-  // /** Indicates whether data should be copied at time of
-  //  * ChangeDevice() call */
-  // bool m_Allocated;
-
   /** The torch::Tensor object points to the pixel data and also
    * stores information about size, data type, device, etc. */
   torch::Tensor m_Tensor;
-
-  // /** Indicates whether this torch image is grafted */
-  // bool m_Grafted;
 };
 } // end namespace itk
 

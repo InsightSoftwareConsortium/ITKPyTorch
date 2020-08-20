@@ -23,7 +23,6 @@
 namespace itk
 {
 
-#if 0
 template< typename TPixelType, typename Void >
 constexpr int64_t
 TorchPixelHelper< TPixelType, Void >
@@ -38,7 +37,6 @@ template< typename TPixelType, typename Void >
 constexpr unsigned int
 TorchPixelHelper< TPixelType, Void >
 ::PixelDimension;
-#endif
 
 } // end namespace itk
 
