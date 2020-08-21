@@ -171,24 +171,7 @@ TorchImage< TPixel, VImageDimension >
 template< typename TPixel, unsigned int VImageDimension >
 void
 TorchImage< TPixel, VImageDimension >
-::FillBuffer( const PixelType &value )
-{
-  if /* constexpr */ ( PixelDimension == 0 )
-    {
-    m_Tensor.fill_( value );
-    }
-  else
-    {
-    const SizeType &bufferSize = Self::GetBufferedRegion().GetSize();
-    std::vector< int64_t > TorchIndex;
-    FillBufferPart( Self::ImageDimension, bufferSize, TorchIndex, value );
-    }
-}
-
-template< typename TPixel, unsigned int VImageDimension >
-void
-TorchImage< TPixel, VImageDimension >
-::FillBufferPart( int CurrentDimensions, const SizeType &BufferSize, std::vector< int64_t > &TorchIndex, const PixelType &value )
+::FillBufferPart( int CurrentDimensions, const SizeType &BufferSize, std::vector< at::indexing::TensorIndex > &TorchIndex, const PixelType &value )
 {
   if( CurrentDimensions == 0 )
     {
@@ -199,7 +182,7 @@ TorchImage< TPixel, VImageDimension >
     // Slowest varying dimension in BufferSize is last
     for( SizeValueType i = 0; i < BufferSize[CurrentDimensions-1]; ++i )
       {
-      TorchIndex.push_back( i );
+      TorchIndex.push_back( static_cast< int64_t >( i ) );
       FillBufferPart( CurrentDimensions-1, BufferSize, TorchIndex, value );
       TorchIndex.pop_back();
       }
@@ -219,10 +202,10 @@ typename TorchImage< TPixel, VImageDimension >::TorchImagePixelHelper
 TorchImage< TPixel, VImageDimension >
 ::GetPixel( const IndexType & index )
 {
-  std::vector< int64_t > TorchIndex;
-  for( SizeValueType i = 0; i < Self::ImageDimension; ++i )
+  std::vector< at::indexing::TensorIndex > TorchIndex;
+  for( unsigned int i = 0; i < Self::ImageDimension; ++i )
     {
-    TorchIndex.push_back( index[Self::ImageDimension-1-i] );
+    TorchIndex.push_back( static_cast< int64_t >( index[Self::ImageDimension-1-i] ) );
     }
   return TorchImagePixelHelper { m_Tensor, TorchIndex };
 }
@@ -232,10 +215,10 @@ const typename TorchImage< TPixel, VImageDimension >::TorchImagePixelHelper
 TorchImage< TPixel, VImageDimension >
 ::GetPixel( const IndexType & index ) const
 {
-  std::vector< int64_t > TorchIndex;
-  for( SizeValueType i = 0; i < Self::ImageDimension; ++i )
+  std::vector< at::indexing::TensorIndex > TorchIndex;
+  for( unsigned int i = 0; i < Self::ImageDimension; ++i )
     {
-    TorchIndex.push_back( index[Self::ImageDimension-1-i] );
+    TorchIndex.push_back( static_cast< int64_t >( index[Self::ImageDimension-1-i] ) );
     }
   return TorchImagePixelHelper { m_Tensor, TorchIndex };
 }

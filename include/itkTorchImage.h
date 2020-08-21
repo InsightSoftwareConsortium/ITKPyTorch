@@ -168,9 +168,26 @@ public:
   void Initialize() override;
 
   /** Fill the torch image buffer with a value.  Be sure to call
+   * Allocate() first. This version is for pixel types that are
+   * simple scalars. */
+  template< typename T = void >
+  typename std::enable_if< PixelDimension == 0, T >::type
+  FillBuffer( const PixelType &value )
+    {
+    m_Tensor.fill_( value );
+    }
+
+  /** Fill the torch image buffer with a value.  Be sure to call
    * Allocate() first. This version is for pixel types that are not
    * simple scalars. */
-  void FillBuffer( const PixelType &value );
+  template< typename T = void >
+  typename std::enable_if< PixelDimension != 0, T >::type
+  FillBuffer( const PixelType &value )
+    {
+    const SizeType &bufferSize = Self::GetBufferedRegion().GetSize();
+    std::vector< at::indexing::TensorIndex > TorchIndex;
+    FillBufferPart( Self::ImageDimension, bufferSize, TorchIndex, value );
+    }
 
   /** \brief Set a pixel value.
    *
@@ -232,7 +249,7 @@ protected:
   void Graft( const DataObject * data ) override;
 
   /** Recursively fill part of the full buffer */
-  void FillBufferPart( int CurrentDimensions, const SizeType &BufferSize, std::vector< int64_t > &TorchIndex, const PixelType &value );
+  void FillBufferPart( int CurrentDimensions, const SizeType &BufferSize, std::vector< at::indexing::TensorIndex > &TorchIndex, const PixelType &value );
 
   /** The enum representation of the data type in the underlying torch
    * library. */
