@@ -24,12 +24,12 @@ namespace itk
 {
 
 template< typename TPixelType, typename Void >
-constexpr int64_t
+constexpr unsigned int
 TorchPixelHelper< TPixelType, Void >
 ::NumberOfComponents;
 
 template< typename TPixelType, typename Void >
-constexpr int64_t
+constexpr unsigned int
 TorchPixelHelper< TPixelType, Void >
 ::SizeOf;
 
