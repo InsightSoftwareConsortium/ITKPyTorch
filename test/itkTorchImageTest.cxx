@@ -128,19 +128,32 @@ int itkTorchImageTest(int argc, char *argv[])
 
   {
     using PixelType = float;
-    using ImageType = itk::TorchImage< PixelType, 2 >;
+    constexpr int ImageDimension = 2;
+    const int SizePerDimension = 128;
+    const std::string StructName = "TorchImage<float, 2>";
+    const PixelType firstValue = 1.1f;
+    const PixelType secondValue = 1.2f;
+    const PixelType thirdValue = 1.3f;
+
+    // Duplicated testing code
+    //
+    using ImageType = itk::TorchImage< PixelType, ImageDimension >;
     ImageType::Pointer image = ImageType::New();
 
     // Create input image
     ImageType::SizeType size;
-    const bool response = image->ChangeDevice( ImageType::itkCUDA );
-    itkAssertOrThrowMacro(response, "TorchImage<float, 2>::ChangeDevice failed")
-      size.Fill( 128 );
+    const bool response = image->SetDevice( ImageType::itkCUDA );
+    itkAssertOrThrowMacro(response, StructName + "::SetDevice failed");
+    ImageType::DeviceType deviceType;
+    int64_t cudaDeviceNumber;
+    image->GetDevice( deviceType, cudaDeviceNumber );
+    itkAssertOrThrowMacro( deviceType == ImageType::itkCUDA, StructName + "::GetDevice failed for deviceType");
+    itkAssertOrThrowMacro( cudaDeviceNumber == 0, StructName + "::GetDevice failed for cudaDeviceNumber");
+
+    size.Fill( SizePerDimension );
     image->SetRegions( size );
     image->Allocate();
 
-    const PixelType firstValue = 1.1;
-    const PixelType secondValue = 1.2;
     ImageType::IndexType location0;
     location0.Fill( 0 );
     ImageType::IndexType location1;
@@ -151,12 +164,20 @@ int itkTorchImageTest(int argc, char *argv[])
 
     image->FillBuffer( firstValue );
     pixelValue = image->GetPixel( location0 );
-    itkAssertOrThrowMacro( pixelValue == firstValue, "TorchImage<float, 2>::FillBuffer failed" );
+    itkAssertOrThrowMacro( pixelValue == firstValue, StructName + "::FillBuffer failed" );
+    pixelValue = image->GetPixel( location1 );
+    itkAssertOrThrowMacro( pixelValue == firstValue, StructName + "::FillBuffer failed" );
+
     image->GetPixel( location0 ) = secondValue;
     pixelValue = image->GetPixel( location0 );
-    itkAssertOrThrowMacro( pixelValue == secondValue, "TorchImage<float, 2>::GetPixel as lvalue failed" );
+    itkAssertOrThrowMacro( pixelValue == secondValue, StructName + "::GetPixel as lvalue failed" );
+
     pixelValue = image->GetPixel( location1 );
-    itkAssertOrThrowMacro( pixelValue == firstValue, "TorchImage<float, 2>::GetPixel has side effect" );
+    itkAssertOrThrowMacro( pixelValue == firstValue, StructName + "::GetPixel has side effect" );
+
+    image->SetPixel( location0, thirdValue );
+    pixelValue = image->GetPixel( location0 );
+    itkAssertOrThrowMacro( pixelValue == thirdValue, StructName + "::SetPixel failed" );
 
     ImageType::Pointer image2 = ImageType::New();
     image2->SetRegions( size );
@@ -166,25 +187,53 @@ int itkTorchImageTest(int argc, char *argv[])
 
   {
     using PixelType = itk::RGBPixel< unsigned char >;
-    using ImageType = itk::TorchImage< PixelType, 3 >;
+    constexpr int ImageDimension = 3;
+    const int SizePerDimension = 20;
+    const std::string StructName = "TorchImage<RGBPixel<unsigned char>, 3>";
+    const PixelType firstValue = []() -> PixelType
+      {
+      PixelType temp;
+      temp[0] = 1;
+      temp[1] = 2;
+      temp[2] = 3;
+      return temp;
+      }();
+    const PixelType secondValue = []() -> PixelType
+      {
+      PixelType temp;
+      temp[0] = 5;
+      temp[1] = 5;
+      temp[2] = 5;
+      return temp;
+      }();
+    const PixelType thirdValue = []() -> PixelType
+      {
+      PixelType temp;
+      temp[0] = 10;
+      temp[1] = 8;
+      temp[2] = 5;
+      return temp;
+      }();
+
+    // Duplicated testing code
+    //
+    using ImageType = itk::TorchImage< PixelType, ImageDimension >;
     ImageType::Pointer image = ImageType::New();
 
     // Create input image
     ImageType::SizeType size;
-    const bool response = image->ChangeDevice( ImageType::itkCUDA );
-    itkAssertOrThrowMacro(response, "TorchImage<RGBPixel<unsigned char>, 3>::ChangeDevice failed")
-      size.Fill( 20 );
+    const bool response = image->SetDevice( ImageType::itkCUDA );
+    itkAssertOrThrowMacro(response, StructName + "::SetDevice failed");
+    ImageType::DeviceType deviceType;
+    int64_t cudaDeviceNumber;
+    image->GetDevice( deviceType, cudaDeviceNumber );
+    itkAssertOrThrowMacro( deviceType == ImageType::itkCUDA, StructName + "::GetDevice failed for deviceType");
+    itkAssertOrThrowMacro( cudaDeviceNumber == 0, StructName + "::GetDevice failed for cudaDeviceNumber");
+
+    size.Fill( SizePerDimension );
     image->SetRegions( size );
     image->Allocate();
 
-    PixelType firstValue;
-    firstValue[0] = 1;
-    firstValue[1] = 2;
-    firstValue[2] = 3;
-    PixelType secondValue;
-    secondValue[0] = 4;
-    secondValue[1] = 5;
-    secondValue[2] = 6;
     ImageType::IndexType location0;
     location0.Fill( 0 );
     ImageType::IndexType location1;
@@ -195,12 +244,20 @@ int itkTorchImageTest(int argc, char *argv[])
 
     image->FillBuffer( firstValue );
     pixelValue = image->GetPixel( location0 );
-    itkAssertOrThrowMacro( pixelValue == firstValue, "TorchImage<RGBPixel<unsigned char>, 3>::FillBuffer failed" );
+    itkAssertOrThrowMacro( pixelValue == firstValue, StructName + "::FillBuffer failed" );
+    pixelValue = image->GetPixel( location1 );
+    itkAssertOrThrowMacro( pixelValue == firstValue, StructName + "::FillBuffer failed" );
+
     image->GetPixel( location0 ) = secondValue;
     pixelValue = image->GetPixel( location0 );
-    itkAssertOrThrowMacro( pixelValue == secondValue, "TorchImage<RGBPixel<unsigned char>, 3>::GetPixel as lvalue failed" );
+    itkAssertOrThrowMacro( pixelValue == secondValue, StructName + "::GetPixel as lvalue failed" );
+
     pixelValue = image->GetPixel( location1 );
-    itkAssertOrThrowMacro( pixelValue == firstValue, "TorchImage<RGBPixel<unsigned char>, 3>::GetPixel has side effect" );
+    itkAssertOrThrowMacro( pixelValue == firstValue, StructName + "::GetPixel has side effect" );
+
+    image->SetPixel( location0, thirdValue );
+    pixelValue = image->GetPixel( location0 );
+    itkAssertOrThrowMacro( pixelValue == thirdValue, StructName + "::SetPixel failed" );
 
     ImageType::Pointer image2 = ImageType::New();
     image2->SetRegions( size );

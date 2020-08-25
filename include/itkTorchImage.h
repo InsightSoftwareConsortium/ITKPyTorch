@@ -155,9 +155,13 @@ public:
   enum DeviceType { itkCPU, itkCUDA };
 
   /** Select itkCUDA (on device #0) or itkCPU */
-  bool ChangeDevice( DeviceType deviceType );
+  bool SetDevice( DeviceType deviceType );
+
   /** Select itkCUDA and a device number */
-  bool ChangeDevice( DeviceType deviceType, int64_t cudaDeviceNumber );
+  bool SetDevice( DeviceType deviceType, int64_t cudaDeviceNumber );
+
+  /** Query current device type and device number */
+  void GetDevice( DeviceType &deviceType, int64_t &cudaDeviceNumber );
 
   /** Allocate the torch image memory. The size of the torch image
    * must already be set, e.g. by calling SetRegions(). */

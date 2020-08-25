@@ -46,12 +46,12 @@ TorchImage< TPixel, VImageDimension >
 template< typename TPixel, unsigned int VImageDimension >
 bool
 TorchImage< TPixel, VImageDimension >
-::ChangeDevice( DeviceType deviceType )
+::SetDevice( DeviceType deviceType )
 {
   switch( deviceType )
     {
     case itkCUDA:
-      return this->ChangeDevice( deviceType, 0 );
+      return this->SetDevice( deviceType, 0 );
       break;
     case itkCPU:
       if( m_DeviceType == itkCPU )
@@ -72,7 +72,7 @@ TorchImage< TPixel, VImageDimension >
 template< typename TPixel, unsigned int VImageDimension >
 bool
 TorchImage< TPixel, VImageDimension >
-::ChangeDevice( DeviceType deviceType, int64_t cudaDeviceNumber )
+::SetDevice( DeviceType deviceType, int64_t cudaDeviceNumber )
 {
   switch( deviceType )
     {
@@ -94,6 +94,15 @@ TorchImage< TPixel, VImageDimension >
     }
 
   return true;
+}
+
+template< typename TPixel, unsigned int VImageDimension >
+void
+TorchImage< TPixel, VImageDimension >
+::GetDevice( DeviceType &deviceType, int64_t &cudaDeviceNumber )
+{
+  deviceType = m_DeviceType;
+  cudaDeviceNumber = m_CudaDeviceNumber;
 }
 
 template< typename TPixel, unsigned int VImageDimension >
