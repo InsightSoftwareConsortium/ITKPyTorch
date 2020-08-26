@@ -72,7 +72,7 @@ TorchImage< TPixel, VImageDimension >
 template< typename TPixel, unsigned int VImageDimension >
 bool
 TorchImage< TPixel, VImageDimension >
-::SetDevice( DeviceType deviceType, int64_t cudaDeviceNumber )
+::SetDevice( DeviceType deviceType, uint64_t cudaDeviceNumber )
 {
   switch( deviceType )
     {
@@ -81,12 +81,17 @@ TorchImage< TPixel, VImageDimension >
         {
         return true;            // no change
         }
+      if ( !( torch::cuda::is_available() && cudaDeviceNumber < torch::cuda::device_count() ) )
+        {
+        return false;
+        }
       if( m_Allocated )
         {
         m_Tensor = m_Tensor.to( torch::kCUDA, cudaDeviceNumber );
         }
       m_DeviceType = deviceType;
       m_CudaDeviceNumber = cudaDeviceNumber;
+      return true;
       break;
     case itkCPU:
       return false;     // cudaDeviceNumber not supported for itkCPU.
@@ -99,7 +104,7 @@ TorchImage< TPixel, VImageDimension >
 template< typename TPixel, unsigned int VImageDimension >
 void
 TorchImage< TPixel, VImageDimension >
-::GetDevice( DeviceType &deviceType, int64_t &cudaDeviceNumber )
+::GetDevice( DeviceType &deviceType, uint64_t &cudaDeviceNumber )
 {
   deviceType = m_DeviceType;
   cudaDeviceNumber = m_CudaDeviceNumber;
@@ -126,7 +131,7 @@ TorchImage< TPixel, VImageDimension >
 template< typename TPixel, unsigned int VImageDimension >
 void
 TorchImage< TPixel, VImageDimension >
-::Allocate( bool initializePixels )
+::Allocate( TensorInitializer tensorInitializer )
 {
   // itkImage does not call Superclass::Allocate.  Should we?
   // Superclass::Allocate( initializePixels );
@@ -146,13 +151,23 @@ TorchImage< TPixel, VImageDimension >
       break;
     }
 
-  if( initializePixels )
+  switch( tensorInitializer )
     {
-    m_Tensor = torch::zeros( torchSize, tensorOptions );
-    }
-  else
-    {
-    m_Tensor = torch::empty( torchSize, tensorOptions );
+    case itkEmpty:
+      m_Tensor = torch::empty( torchSize, tensorOptions );
+      break;
+    case itkZeros:
+      m_Tensor = torch::zeros( torchSize, tensorOptions );
+      break;
+    case itkOnes:
+      m_Tensor = torch::ones( torchSize, tensorOptions );
+      break;
+    case itkRand:
+      m_Tensor = torch::rand( torchSize, tensorOptions );
+      break;
+    case itkRandn:
+      m_Tensor = torch::randn( torchSize, tensorOptions );
+      break;
     }
   m_Allocated = true;
 }
@@ -294,10 +309,12 @@ template< typename TPixel, unsigned int VImageDimension >
 TorchImage< TPixel, VImageDimension >
 ::TorchImage()
 {
-  m_DeviceType = itkCUDA;
-  m_Allocated = false;
+  m_DeviceType = itkCPU;
   m_CudaDeviceNumber = 0;
+  m_Allocated = false;
   m_Tensor = torch::Tensor();
+  // SetDevice checks whether GPU exists
+  this->SetDevice(itkCUDA, 0);
 }
 
 template< typename TPixel, unsigned int VImageDimension >

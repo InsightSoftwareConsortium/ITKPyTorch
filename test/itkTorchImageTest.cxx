@@ -30,23 +30,23 @@ namespace
 class ShowProgress : public itk::Command
 {
 public:
-  itkNewMacro(ShowProgress);
+  itkNewMacro( ShowProgress );
 
   void
-  Execute(itk::Object *caller, const itk::EventObject &event) override
+  Execute( itk::Object *caller, const itk::EventObject &event ) override
   {
-    Execute((const itk::Object *)caller, event);
+    Execute( ( const itk::Object * )caller, event );
   }
 
   void
-  Execute(const itk::Object *caller, const itk::EventObject &event) override
+  Execute( const itk::Object *caller, const itk::EventObject &event ) override
   {
-    if (!itk::ProgressEvent().CheckEvent(&event))
+    if ( !itk::ProgressEvent().CheckEvent( &event ) )
     {
       return;
     }
-    const auto *processObject = dynamic_cast<const itk::ProcessObject *>(caller);
-    if (!processObject)
+    const auto *processObject = dynamic_cast<const itk::ProcessObject *>( caller );
+    if ( !processObject )
     {
       return;
     }
@@ -62,29 +62,29 @@ itkTorchImageTestByTypeAndDimension(
   const std::string &StructName,
   const PixelType &firstValue,
   const PixelType &secondValue,
-  const PixelType &thirdValue)
+  const PixelType &thirdValue )
 {
+  // Create input image and an observer
   using ImageType = itk::TorchImage< PixelType, ImageDimension >;
   typename ImageType::Pointer image = ImageType::New();
-
   ShowProgress::Pointer showProgress = ShowProgress::New();
   image->AddObserver( itk::ProgressEvent(), showProgress );
 
-  // Create input image
+  // Choose itkCUDA as the device type
   typename ImageType::DeviceType MyDeviceType = ImageType::itkCUDA;
   bool response = image->SetDevice( MyDeviceType );
-  if (!response)
+  if ( !response )
     {
-    // GPU not available
+    // itkCUDA not available.  Trying itkCPU instead.
     MyDeviceType = ImageType::itkCPU;
     response = image->SetDevice( MyDeviceType );
     }
-  itkAssertOrThrowMacro(response, StructName + "::SetDevice failed");
+  itkAssertOrThrowMacro( response, StructName + "::SetDevice failed" );
   typename ImageType::DeviceType deviceType;
-  int64_t cudaDeviceNumber;
+  uint64_t cudaDeviceNumber = 0;
   image->GetDevice( deviceType, cudaDeviceNumber );
-  itkAssertOrThrowMacro( deviceType == MyDeviceType, StructName + "::GetDevice failed for deviceType");
-  itkAssertOrThrowMacro( cudaDeviceNumber == 0, StructName + "::GetDevice failed for cudaDeviceNumber");
+  itkAssertOrThrowMacro( deviceType == MyDeviceType, StructName + "::GetDevice failed for deviceType" );
+  itkAssertOrThrowMacro( cudaDeviceNumber == 0, StructName + "::GetDevice failed for cudaDeviceNumber" );
 
   typename ImageType::SizeType size;
   size.Fill( SizePerDimension );
@@ -93,10 +93,10 @@ itkTorchImageTestByTypeAndDimension(
 
   typename ImageType::IndexType location0;
   location0.Fill( 0 );
-  location0[0] = 1;             // (1, 0, 0, ...)
+  location0[0] = 1;             // ( 1, 0, 0, ... )
   typename ImageType::IndexType location1;
   location1.Fill( 1 );
-  location1[0] = 0;             // (0, 1, 1, ...)
+  location1[0] = 0;             // ( 0, 1, 1, ... )
   PixelType pixelValue;
 
   image->FillBuffer( firstValue );
@@ -118,23 +118,21 @@ itkTorchImageTestByTypeAndDimension(
   pixelValue = image->GetPixel( location0 );
   itkAssertOrThrowMacro( pixelValue == secondValue, StructName + "::SetPixel has side effect" );
 
-  // Test more about Graft()!!!
   typename ImageType::Pointer image2 = ImageType::New();
   image2->SetRegions( size );
-  image2->Allocate();
   image2->Graft( image );
 
   return EXIT_SUCCESS;
 }
 
-int itkTorchImageTest(int argc, char *argv[])
+int itkTorchImageTest( int argc, char *argv[] )
 {
   std::cout << "Test compiled " << __DATE__ << " " << __TIME__ << std::endl;
 
-  if (argc < 2)
+  if ( argc < 2 )
     {
     std::cerr << "Missing parameters." << std::endl;
-    std::cerr << "Usage: " << itkNameOfTestExecutableMacro(argv);
+    std::cerr << "Usage: " << itkNameOfTestExecutableMacro( argv );
     std::cerr << " outputImage";
     std::cerr << std::endl;
     return EXIT_FAILURE;
@@ -167,9 +165,9 @@ int itkTorchImageTest(int argc, char *argv[])
     ITK_EXERCISE_BASIC_OBJECT_METHODS( image, TorchImage, ImageBase );
   }
   {
-    using PixelType = unsigned char;
+    using PixelType = uint8_t;
     constexpr int ImageDimension = 3;
-    const std::string StructName = "TorchImage<unsigned char, 3>";
+    const std::string StructName = "TorchImage<uint8_t, 3>";
     const int SizePerDimension = 16;
     const PixelType firstValue = 10;
     const PixelType secondValue = 130;
@@ -182,9 +180,9 @@ int itkTorchImageTest(int argc, char *argv[])
       }
   }
   {
-    using PixelType = signed char;
+    using PixelType = int8_t;
     constexpr int ImageDimension = 4;
-    const std::string StructName = "TorchImage<signed char, 4>";
+    const std::string StructName = "TorchImage<int8_t, 4>";
     const int SizePerDimension = 10;
     const PixelType firstValue = 10;
     const PixelType secondValue = -11;
@@ -278,9 +276,9 @@ int itkTorchImageTest(int argc, char *argv[])
   //   Vector<CovariantVector<<RGBPixel<Vector>>>, etc.
 
   {
-    using PixelType = itk::RGBPixel< unsigned char >;
+    using PixelType = itk::RGBPixel< uint8_t >;
     constexpr int ImageDimension = 3;
-    const std::string StructName = "TorchImage<RGBPixel<unsigned char>, 3>";
+    const std::string StructName = "TorchImage<RGBPixel<uint8_t>, 3>";
     const int SizePerDimension = 20;
     const typename PixelType::ValueType firstValue[] = {1, 1, 1};
     const typename PixelType::ValueType secondValue[] = {2, 2, 2};
@@ -293,9 +291,9 @@ int itkTorchImageTest(int argc, char *argv[])
       }
   }
   {
-    using PixelType = itk::RGBAPixel< unsigned char >;
+    using PixelType = itk::RGBAPixel< uint8_t >;
     constexpr int ImageDimension = 2;
-    const std::string StructName = "TorchImage<RGBAPixel<unsigned char>, 2>";
+    const std::string StructName = "TorchImage<RGBAPixel<uint8_t>, 2>";
     const int SizePerDimension = 30;
     const typename PixelType::ValueType firstValue[] = {1, 1, 1, 255};
     const typename PixelType::ValueType secondValue[] = {2, 2, 2, 128};
@@ -359,21 +357,21 @@ int itkTorchImageTest(int argc, char *argv[])
   {
     constexpr int VectorDimension1 = 2;
     constexpr int VectorDimension2 = 3;
-    using PixelType = itk::Vector< itk::Vector< itk::RGBPixel< unsigned char >, VectorDimension1 >, VectorDimension2 >;
+    using PixelType = itk::Vector< itk::Vector< itk::RGBPixel< uint8_t >, VectorDimension1 >, VectorDimension2 >;
     constexpr int ImageDimension = 4;
-    const std::string StructName = "TorchImage< Vector< Vector< RGBAPixel< unsigned char >, 2 >, 3 >, 4 >";
+    const std::string StructName = "TorchImage< Vector< Vector< RGBAPixel< uint8_t >, 2 >, 3 >, 4 >";
     const int SizePerDimension = 3;
-    const unsigned char firstValue0[] = {1, 1, 1};
-    const unsigned char secondValue0[] = {4, 64, 255};
-    const unsigned char thirdValue0[] = {0, 128, 1};
-    const itk::RGBPixel< unsigned char > firstValue1[VectorDimension1] = { firstValue0, secondValue0 };
-    const itk::RGBPixel< unsigned char > secondValue1[VectorDimension1] = { secondValue0, thirdValue0 };
-    const itk::RGBPixel< unsigned char > thirdValue1[VectorDimension1] = { thirdValue0, firstValue0 };
-    const itk::Vector< itk::RGBPixel< unsigned char >, VectorDimension1 > firstValue[VectorDimension2] =
+    const uint8_t firstValue0[] = {1, 1, 1};
+    const uint8_t secondValue0[] = {4, 64, 255};
+    const uint8_t thirdValue0[] = {0, 128, 1};
+    const itk::RGBPixel< uint8_t > firstValue1[VectorDimension1] = { firstValue0, secondValue0 };
+    const itk::RGBPixel< uint8_t > secondValue1[VectorDimension1] = { secondValue0, thirdValue0 };
+    const itk::RGBPixel< uint8_t > thirdValue1[VectorDimension1] = { thirdValue0, firstValue0 };
+    const itk::Vector< itk::RGBPixel< uint8_t >, VectorDimension1 > firstValue[VectorDimension2] =
       { firstValue1, secondValue1, firstValue1 };
-    const itk::Vector< itk::RGBPixel< unsigned char >, VectorDimension1 > secondValue[VectorDimension2] =
+    const itk::Vector< itk::RGBPixel< uint8_t >, VectorDimension1 > secondValue[VectorDimension2] =
       { thirdValue1, thirdValue1, thirdValue1 };
-    const itk::Vector< itk::RGBPixel< unsigned char >, VectorDimension1 > thirdValue[VectorDimension2] =
+    const itk::Vector< itk::RGBPixel< uint8_t >, VectorDimension1 > thirdValue[VectorDimension2] =
       { secondValue1, firstValue1, secondValue1 };
     const int response =
       itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
