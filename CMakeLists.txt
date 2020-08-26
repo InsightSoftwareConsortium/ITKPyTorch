@@ -78,7 +78,7 @@ else()
   itk_module_impl()
 endif()
 
-if(0)
+if(1)
   get_cmake_property(_variableNames VARIABLES)
   list (SORT _variableNames)
   foreach (_variableName ${_variableNames})
