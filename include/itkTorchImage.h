@@ -19,6 +19,7 @@
 #define itkTorchImage_h
 
 #include <torch/torch.h>
+#include "itkSmartPointer.h"
 #include "itkImageBase.h"
 #include "itkTorchPixelHelper.h"
 
