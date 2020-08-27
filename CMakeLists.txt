@@ -8,66 +8,76 @@ project(PyTorch)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# We will need to use the location ${Python_EXECUTABLE}
-find_package(Python REQUIRED)
-
-# Get PyTorch and its dependencies, git recursively
-set(torch_fetch_git_repository "https://github.com/pytorch/pytorch")
-set(torch_fetch_git_tag "v1.5.1")
-include(FetchContent)
-FetchContent_Declare(
-  torch_fetch
-  GIT_REPOSITORY "${torch_fetch_git_repository}"
-  GIT_TAG        "${torch_fetch_git_tag}"
-)
-message(STATUS "FetchContent_Populate ${torch_fetch_git_repository} ${torch_fetch_git_tag}")
-FetchContent_Populate(torch_fetch)
-message(STATUS "FetchContent_Populate ${torch_fetch_git_repository} ${torch_fetch_git_tag} - done")
-
-# We can enable and disable functionality with the following options.
-if(NOT DEFINED ENV{USE_CUDA})
-  # If the user hasn't indicated either way, which would be the case
-  # on GitHub, then we will not use CUDA.
-  set(ENV{USE_CUDA} "0")
-endif()
-if($ENV{USE_CUDA})
-  set(torch_fetch_additional_libraries "torch_cuda" "c10_cuda")
-endif()
-if(NOT DEFINED ENV{USE_CUDNN})
-  # If the user hasn't indicated either way, which would be the case
-  # on GitHub, then we will not use CUDNN.
-  set(ENV{USE_CUDNN} "0")
+if(NOT DEFINED USE_CUDA AND DEFINED ENV{USE_CUDA})
+  set(USE_CUDA $ENV{USE_CUDA})
 endif()
 
-# Use torch's setup.py to build and locally install it.
-if(NOT DEFINED torch_fetch_install_directory)
-  set(torch_fetch_install_directory "${torch_fetch_SOURCE_DIR}/../torch_fetch-install")
-  set(torch_fetch_build_directory "${torch_fetch_SOURCE_DIR}/build")
-  message(STATUS "Executing: cd ${torch_fetch_SOURCE_DIR}; ${Python_EXECUTABLE} setup.py install --prefix=${torch_fetch_install_directory}")
-  add_custom_target(
-    temp ALL
-    ${Python_EXECUTABLE} setup.py install --prefix=${torch_fetch_install_directory}
-    WORKING_DIRECTORY ${torch_fetch_SOURCE_DIR}
+if(NOT DEFINED Torch_DIR)
+  if(USE_CUDA)
+    if(APPLE)
+      message(STATUS "FetchContent_Populate(torch_fetch) will be for APPLE without CUDA 10.1")
+      set(torch_fetch_URL "https://download.pytorch.org/libtorch/cpu/libtorch-macos-1.5.1.zip")
+      set(torch_fetch_HASH "MD5=77ca8e871c1200f1e5864ae1d9251a48")
+    elseif(WIN32)
+      message(STATUS "FetchContent_Populate(torch_fetch) will be for WIN32 with CUDA 10.1")
+      set(torch_fetch_URL "https://download.pytorch.org/libtorch/cu101/libtorch-win-shared-with-deps-1.5.1%2Bcu101.zip")
+      set(torch_fetch_HASH "MD5=90eb7739fc3b2f4572a93ee6da1e2139")
+    else()
+      if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "6.0")
+        message(STATUS "FetchContent_Populate(torch_fetch) will be for Linux (not C++11 ABI) with CUDA 10.1")
+        set(torch_fetch_URL "https://download.pytorch.org/libtorch/cu101/libtorch-shared-with-deps-1.5.1%2Bcu101.zip")
+        set(torch_fetch_HASH "MD5=9c9fbdd9dfcc1abd1049e10342f3ba72")
+      else()
+        message(STATUS "FetchContent_Populate(torch_fetch) will be for Linux (C++11 ABI) with CUDA 10.1")
+        set(torch_fetch_URL "https://download.pytorch.org/libtorch/cu101/libtorch-cxx11-abi-shared-with-deps-1.5.1%2Bcu101.zip")
+        set(torch_fetch_HASH "MD5=b18d6f2fdfe730c1fca3edd5ed2f3c8f")
+      endif()
+    endif()
+  else()
+    if(APPLE)
+      message(STATUS "FetchContent_Populate(torch_fetch) will be for APPLE without CUDA")
+      set(torch_fetch_URL "https://download.pytorch.org/libtorch/cpu/libtorch-macos-1.5.1.zip")
+      set(torch_fetch_HASH "MD5=77ca8e871c1200f1e5864ae1d9251a48")
+    elseif(WIN32)
+      message(STATUS "FetchContent_Populate(torch_fetch) will be for WIN32 without CUDA")
+      set(torch_fetch_URL "https://download.pytorch.org/libtorch/cpu/libtorch-win-shared-with-deps-1.5.1%2Bcpu.zip")
+      set(torch_fetch_HASH "MD5=ff07328e322040662612c4a0f7706d3c")
+    else()
+      if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "6.0")
+        message(STATUS "FetchContent_Populate(torch_fetch) will be for Linux (not C++11 ABI) without CUDA")
+        set(torch_fetch_URL "https://download.pytorch.org/libtorch/cpu/libtorch-shared-with-deps-1.5.1%2Bcpu.zip")
+        set(torch_fetch_HASH "MD5=712ffae2979e8bc6a9cc92d321c2befe")
+      else()
+        message(STATUS "FetchContent_Populate(torch_fetch) will be for Linux (C++11 ABI) without CUDA")
+        set(torch_fetch_URL "https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-1.5.1%2Bcpu.zip")
+        set(torch_fetch_HASH "MD5=088e4f38ae7a0fa2e6ee8fea254866cf")
+      endif()
+    endif()
+  endif()
+
+  include(FetchContent)
+  FetchContent_Declare(
+    torch_fetch
+    URL           "${torch_fetch_URL}"
+    URL_HASH      "${torch_fetch_HASH}"
     )
-  message(STATUS "Executing: cd ${torch_fetch_SOURCE_DIR}; ${Python_EXECUTABLE} setup.py install --prefix=${torch_fetch_install_directory} - done")
+  message(STATUS "FetchContent_Populate ${torch_fetch_URL}")
+  FetchContent_Populate(torch_fetch)
+  message(STATUS "FetchContent_Populate ${torch_fetch_URL} - done")
+  message(STATUS "torch_fetch_SOURCE_DIR=${torch_fetch_SOURCE_DIR}")
+  message(STATUS "torch_fetch_BINARY_DIR=${torch_fetch_BINARY_DIR}")
+
+  set(Torch_DIR "${torch_fetch_SOURCE_DIR}/share/cmake/Torch")
 endif()
+message(STATUS "Torch_DIR=${Torch_DIR}")
+find_package(Torch REQUIRED CONFIG)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+set(PyTorch_LIBRARIES "${TORCH_LIBRARIES}")
 include_directories(
-  "${torch_fetch_install_directory}/torch/include/torch/csrc/api/include"
-  "${torch_fetch_install_directory}/torch/include"
-  "${torch_fetch_install_directory}/caffe2/aten/src"
-  "${torch_fetch_install_directory}/lib/python3.8/site-packages/torch/include"
-  "${torch_fetch_install_directory}/lib/python3.8/site-packages/torch/include/torch/csrc/api/include"
-  "${torch_fetch_build_directory}/aten/src"
-  "${torch_fetch_build_directory}/nccl/include"
-  "${torch_fetch_SOURCE_DIR}/aten/src"
+  ${torch_fetch_SOURCE_DIR}/include/torch/csrc/api/include
+  ${torch_fetch_SOURCE_DIR}/include
   )
-
-add_subdirectory(${torch_fetch_SOURCE_DIR} ${torch_fetch_build_directory})
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,--no-as-needed")
-list(APPEND PyTorch_LIBRARIES "${torch_fetch_additional_libraries}")
-list(APPEND PyTorch-Test_LIBRARIES "${torch_fetch_additional_libraries}")
 
 if(NOT ITK_SOURCE_DIR)
   find_package(ITK REQUIRED)
@@ -78,7 +88,7 @@ else()
   itk_module_impl()
 endif()
 
-if(1)
+if(0)
   get_cmake_property(_variableNames VARIABLES)
   list (SORT _variableNames)
   foreach (_variableName ${_variableNames})
