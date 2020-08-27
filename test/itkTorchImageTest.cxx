@@ -19,9 +19,11 @@
 #include "itkTorchImage.h"
 
 #include "itkCommand.h"
-#include "itkImageFileWriter.h"
 #include "itkTestingMacros.h"
 #include "itkRGBPixel.h"
+#include "itkRGBAPixel.h"
+#include "itkVector.h"
+#include "itkCovariantVector.h"
 
 namespace
 {
@@ -54,7 +56,7 @@ public:
 } // namespace
 
 template< typename PixelType, int ImageDimension >
-void
+int
 itkTorchImageTestByTypeAndDimension(
   const int SizePerDimension,
   const std::string &StructName,
@@ -64,6 +66,9 @@ itkTorchImageTestByTypeAndDimension(
 {
   using ImageType = itk::TorchImage< PixelType, ImageDimension >;
   typename ImageType::Pointer image = ImageType::New();
+
+  ShowProgress::Pointer showProgress = ShowProgress::New();
+  image->AddObserver( itk::ProgressEvent(), showProgress );
 
   // Create input image
   typename ImageType::DeviceType MyDeviceType = ImageType::itkCUDA;
@@ -118,10 +123,14 @@ itkTorchImageTestByTypeAndDimension(
   image2->SetRegions( size );
   image2->Allocate();
   image2->Graft( image );
+
+  return EXIT_SUCCESS;
 }
 
 int itkTorchImageTest(int argc, char *argv[])
 {
+  std::cout << "Test compiled " << __DATE__ << " " << __TIME__ << std::endl;
+
   if (argc < 2)
     {
     std::cerr << "Missing parameters." << std::endl;
@@ -145,7 +154,17 @@ int itkTorchImageTest(int argc, char *argv[])
     const PixelType firstValue = false;
     const PixelType secondValue = true;
     const PixelType thirdValue = false;
-    itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    const int response =
+      itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    if( response != EXIT_SUCCESS )
+      {
+      return response;
+      }
+
+    // Run ITK_EXERCISE_BASIC_OBJECT_METHODS just once, rather than for every pixel type.
+    using ImageType = itk::TorchImage< PixelType, ImageDimension >;
+    typename ImageType::Pointer image = ImageType::New();
+    ITK_EXERCISE_BASIC_OBJECT_METHODS( image, TorchImage, ImageBase );
   }
   {
     using PixelType = unsigned char;
@@ -155,7 +174,12 @@ int itkTorchImageTest(int argc, char *argv[])
     const PixelType firstValue = 10;
     const PixelType secondValue = 130;
     const PixelType thirdValue = 12;
-    itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    const int response =
+      itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    if( response != EXIT_SUCCESS )
+      {
+      return response;
+      }
   }
   {
     using PixelType = signed char;
@@ -165,7 +189,12 @@ int itkTorchImageTest(int argc, char *argv[])
     const PixelType firstValue = 10;
     const PixelType secondValue = -11;
     const PixelType thirdValue = 12;
-    itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    const int response =
+      itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    if( response != EXIT_SUCCESS )
+      {
+      return response;
+      }
   }
   {
     using PixelType = int16_t;
@@ -175,7 +204,12 @@ int itkTorchImageTest(int argc, char *argv[])
     const PixelType firstValue = 32000;
     const PixelType secondValue = -32000;
     const PixelType thirdValue = 5;
-    itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    const int response =
+      itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    if( response != EXIT_SUCCESS )
+      {
+      return response;
+      }
   }
   {
     using PixelType = int32_t;
@@ -185,7 +219,12 @@ int itkTorchImageTest(int argc, char *argv[])
     const PixelType firstValue = 2147483000;
     const PixelType secondValue = -2147483000;
     const PixelType thirdValue = 10;
-    itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    const int response =
+      itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    if( response != EXIT_SUCCESS )
+      {
+      return response;
+      }
   }
   {
     using PixelType = int64_t;
@@ -195,7 +234,12 @@ int itkTorchImageTest(int argc, char *argv[])
     const PixelType firstValue = 9223372036854775000LL;
     const PixelType secondValue = -9223372036854775000LL;
     const PixelType thirdValue = 16;
-    itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    const int response =
+      itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    if( response != EXIT_SUCCESS )
+      {
+      return response;
+      }
   }
   {
     using PixelType = float;
@@ -205,7 +249,12 @@ int itkTorchImageTest(int argc, char *argv[])
     const PixelType firstValue = 1.1f;
     const PixelType secondValue = -1.2f;
     const PixelType thirdValue = 1.3f;
-    itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    const int response =
+      itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    if( response != EXIT_SUCCESS )
+      {
+      return response;
+      }
   }
   {
     using PixelType = double;
@@ -215,7 +264,12 @@ int itkTorchImageTest(int argc, char *argv[])
     const PixelType firstValue = 1.4;
     const PixelType secondValue = -1.5;
     const PixelType thirdValue = 1.6;
-    itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    const int response =
+      itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    if( response != EXIT_SUCCESS )
+      {
+      return response;
+      }
   }
 
   // We also support various vector pixel types,
@@ -231,7 +285,27 @@ int itkTorchImageTest(int argc, char *argv[])
     const typename PixelType::ValueType firstValue[] = {1, 1, 1};
     const typename PixelType::ValueType secondValue[] = {2, 2, 2};
     const typename PixelType::ValueType thirdValue[] = {2, 3, 1};
-    itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    const int response =
+      itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    if( response != EXIT_SUCCESS )
+      {
+      return response;
+      }
+  }
+  {
+    using PixelType = itk::RGBAPixel< unsigned char >;
+    constexpr int ImageDimension = 2;
+    const std::string StructName = "TorchImage<RGBAPixel<unsigned char>, 2>";
+    const int SizePerDimension = 30;
+    const typename PixelType::ValueType firstValue[] = {1, 1, 1, 255};
+    const typename PixelType::ValueType secondValue[] = {2, 2, 2, 128};
+    const typename PixelType::ValueType thirdValue[] = {2, 3, 1, 64};
+    const int response =
+      itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    if( response != EXIT_SUCCESS )
+      {
+      return response;
+      }
   }
   {
     constexpr int VectorDimension = 2;
@@ -242,7 +316,12 @@ int itkTorchImageTest(int argc, char *argv[])
     const typename PixelType::ValueType firstValue[VectorDimension] = {1, 2};
     const typename PixelType::ValueType secondValue[VectorDimension] = {-100, 32000};
     const typename PixelType::ValueType thirdValue[VectorDimension] = {100, -32000};
-    itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    const int response =
+      itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    if( response != EXIT_SUCCESS )
+      {
+      return response;
+      }
   }
 
   {
@@ -254,7 +333,12 @@ int itkTorchImageTest(int argc, char *argv[])
     const typename PixelType::ValueType firstValue[VectorDimension] = {1, 2, 3};
     const typename PixelType::ValueType secondValue[VectorDimension] = {-310, 3100, -31000};
     const typename PixelType::ValueType thirdValue[VectorDimension] = {310, -3100, 31000};
-    itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    const int response =
+      itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    if( response != EXIT_SUCCESS )
+      {
+      return response;
+      }
   }
   {
     constexpr int VectorDimension = 4;
@@ -265,7 +349,12 @@ int itkTorchImageTest(int argc, char *argv[])
     const typename PixelType::ValueType firstValue[VectorDimension] = {1, 2, 3, 4};
     const typename PixelType::ValueType secondValue[VectorDimension] = {-310, 3100, -31000, 31};
     const typename PixelType::ValueType thirdValue[VectorDimension] = {310, -3100, 31000, 31};
-    itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    const int response =
+      itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    if( response != EXIT_SUCCESS )
+      {
+      return response;
+      }
   }
   {
     constexpr int VectorDimension1 = 2;
@@ -286,7 +375,12 @@ int itkTorchImageTest(int argc, char *argv[])
       { thirdValue1, thirdValue1, thirdValue1 };
     const itk::Vector< itk::RGBPixel< unsigned char >, VectorDimension1 > thirdValue[VectorDimension2] =
       { secondValue1, firstValue1, secondValue1 };
-    itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    const int response =
+      itkTorchImageTestByTypeAndDimension< PixelType, ImageDimension >( SizePerDimension, StructName, firstValue, secondValue, thirdValue );
+    if( response != EXIT_SUCCESS )
+      {
+      return response;
+      }
   }
 
   std::cout << "Test finished." << std::endl;
