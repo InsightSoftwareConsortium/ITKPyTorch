@@ -14,16 +14,22 @@ jobs:
             c-compiler: "gcc"
             cxx-compiler: "g++"
             itk-git-tag: "v5.1.0"
+            pytorch-git-tag: "v1.5.1"
+            pytorch-build-type: "Release"
             cmake-build-type: "MinSizeRel"
           - os: windows-2019
             c-compiler: "cl.exe"
             cxx-compiler: "cl.exe"
             itk-git-tag: "v5.1.0"
+            pytorch-git-tag: "v1.5.1"
+            pytorch-build-type: "Release"
             cmake-build-type: "Release"
           - os: macos-10.15
             c-compiler: "clang"
             cxx-compiler: "clang++"
             itk-git-tag: "v5.1.0"
+            pytorch-git-tag: "v1.5.1"
+            pytorch-build-type: "Release"
             cmake-build-type: "MinSizeRel"
 
     steps:
@@ -53,7 +59,7 @@ jobs:
         mkdir ITK-build
         cd ITK-build
         cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -DBUILD_TESTING:BOOL=OFF -GNinja ../ITK
-        ninja
+        cmake --build .
 
     - name: Build ITK
       if: matrix.os == 'windows-2019'
@@ -63,7 +69,36 @@ jobs:
         cd ITK-build
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -DBUILD_TESTING:BOOL=OFF -GNinja ../ITK
-        ninja
+        cmake --build .
+      shell: cmd
+
+    - name: Download Pytorch
+      run: |
+        cd ..
+        git clone https://github.com/pytorch/pytorch.git
+        cd pytorch
+        git checkout ${{ matrix.pytorch-git-tag }}
+        git clean -fdx
+        git submodule update --init --recursive
+
+    - name: Build Pytorch
+      if: matrix.os != 'windows-2019'
+      run: |
+        cd ..
+        mkdir pytorch-build
+        cd pytorch-build
+        cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DCMAKE_BUILD_TYPE:STRING=${{ matrix.pytorch-build-type }} -DCMAKE_INSTALL_PREFIX:PATH=../pytorch-install -GNinja ../pytorch
+        cmake --build . --target install
+
+    - name: Build Pytorch
+      if: matrix.os == 'windows-2019'
+      run: |
+        cd ..
+        mkdir pytorch-build
+        cd pytorch-build
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DCMAKE_BUILD_TYPE:STRING=${{ matrix.pytorch-build-type }} -DCMAKE_INSTALL_PREFIX:PATH=../pytorch-install -GNinja ../pytorch
+        cmake --build . --target install
       shell: cmd
 
     - name: Fetch CTest driver script
@@ -102,6 +137,7 @@ jobs:
         set(ENV{CXX} ${{ matrix.cxx-compiler }})
         set(dashboard_cache "
         ITK_DIR:PATH=\${CTEST_DASHBOARD_ROOT}/ITK-build
+        Torch_DIR:PATH=\${CTEST_DASHBOARD_ROOT}/pytorch-install/share/cmake/Torch
         BUILD_TESTING:BOOL=ON
         ")
         string(TIMESTAMP build_date "%Y-%m-%d")
@@ -124,6 +160,8 @@ jobs:
       shell: cmd
 
   build-linux-python-packages:
+    needs:
+      - build-test-cxx
     runs-on: ubuntu-18.04
     strategy:
       max-parallel: 2
@@ -161,6 +199,8 @@ jobs:
         path: dist
 
   build-macos-python-packages:
+    needs:
+      - build-test-cxx
     runs-on: macos-10.15
     strategy:
       max-parallel: 2
@@ -189,6 +229,8 @@ jobs:
         path: dist
 
   build-windows-python-packages:
+    needs:
+      - build-test-cxx
     runs-on: windows-2019
     strategy:
       max-parallel: 2
