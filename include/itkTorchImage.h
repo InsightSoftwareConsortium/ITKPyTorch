@@ -154,19 +154,21 @@ public:
   static constexpr unsigned int TorchDimension = ImageDimension + PixelDimension;
 
   enum DeviceType { itkCPU, itkCUDA };
+  enum TensorInitializer { itkEmpty, itkZeros, itkOnes, itkRand, itkRandn };
 
   /** Select itkCUDA (on device #0) or itkCPU */
   bool SetDevice( DeviceType deviceType );
 
   /** Select itkCUDA and a device number */
-  bool SetDevice( DeviceType deviceType, int64_t cudaDeviceNumber );
+  bool SetDevice( DeviceType deviceType, uint64_t cudaDeviceNumber );
 
   /** Query current device type and device number */
-  void GetDevice( DeviceType &deviceType, int64_t &cudaDeviceNumber );
+  void GetDevice( DeviceType &deviceType, uint64_t &cudaDeviceNumber );
 
   /** Allocate the torch image memory. The size of the torch image
-   * must already be set, e.g. by calling SetRegions(). */
-  void Allocate( bool initializePixels = false );
+   * must already be set, e.g. by calling SetRegions().  Returns false
+   * if allocation to a non-existent GPU fails. */
+  void Allocate( TensorInitializer tensorInitializer = itkEmpty );
 
   /** Restore the data object to its initial state. This means releasing
    * memory. */
@@ -287,7 +289,7 @@ private:
   bool m_Allocated;
 
   /** Defaults to zero */
-  int64_t m_CudaDeviceNumber;
+  uint64_t m_CudaDeviceNumber;
 
   /** The torch::Tensor object points to the pixel data and also
    * stores information about size, data type, device, etc. */

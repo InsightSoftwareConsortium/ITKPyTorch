@@ -18,16 +18,6 @@
 #ifndef itkTorchPixelHelper_h
 #define itkTorchPixelHelper_h
 
-namespace itk
-{
-// We define our own void_t so that we do not have to require C++-17;
-// we do it in a way that works even for C++14 peculiarities.
-template< typename... Ts >
-struct TorchMakeVoid { using type = void; };
-template< typename... Ts >
-using TorchVoid_t = typename TorchMakeVoid< Ts... >::type;
-} // end anonymous namespace
-
 #include <torch/torch.h>
 
 namespace itk
@@ -84,7 +74,7 @@ public:
  * \ingroup PyTorch
  */
 template< typename TPixelType >
-class TorchPixelHelper< TPixelType, TorchVoid_t< typename std::enable_if< std::is_arithmetic< TPixelType >::value >::type > >
+class TorchPixelHelper< TPixelType, typename std::enable_if< std::is_arithmetic< TPixelType >::value >::type >
 {
 public:
   using Self = TorchPixelHelper;
@@ -143,9 +133,12 @@ protected:
  * \ingroup PyTorch
  */
 template< typename TPixelType >
-class TorchPixelHelper< TPixelType, TorchVoid_t< typename std::enable_if< !std::is_arithmetic< TPixelType >::value >::type > >
+class TorchPixelHelper< TPixelType, typename std::enable_if< !std::is_arithmetic< TPixelType >::value >::type >
 {
 public:
+#ifdef ITK_USE_CONCEPT_CHECKING
+  itkConceptMacro( HasValueTypeCheck, ( Concept::HasValueType< TPixelType > ) );
+#endif
   using Self = TorchPixelHelper;
   using PixelType = TPixelType;
   using ValueType = typename PixelType::ValueType;
