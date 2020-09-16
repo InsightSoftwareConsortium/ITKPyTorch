@@ -19,6 +19,7 @@
 #define itkTorchImage_h
 
 #include <torch/torch.h>
+#include <ATen/native/TensorIteratorDynamicCasting.h>
 #include "itkSmartPointer.h"
 #include "itkImageBase.h"
 #include "itkTorchPixelHelper.h"
@@ -260,7 +261,7 @@ protected:
 
   /** The enum representation of the data type in the underlying torch
    * library. */
-  static constexpr at::ScalarType TorchValueType = c10::impl::CPPTypeToScalarType< DeepScalarType >::value;
+  static constexpr at::ScalarType TorchValueType = at::native::cppmap::detail::CPPTypeToScalarType< DeepScalarType >::value();
 
   /** The first dimension of an image index varies the quickest in the
    * underlying buffer with ITK generally (e.g. class Image) but the
