@@ -20,8 +20,11 @@
 
 #include <torch/torch.h>
 #include <ATen/native/TensorIteratorDynamicCasting.h>
-#include "itkSmartPointer.h"
+
 #include "itkImageBase.h"
+#include "itkImportImageContainer.h"
+#include "itkSmartPointer.h"
+
 #include "itkTorchPixelHelper.h"
 
 namespace itk
@@ -99,7 +102,7 @@ public:
    * representation. */
   using InternalPixelType = TPixel;
 
-  using IOPixelType = PixelType;
+  using IOPixelType = typename Self::PixelType;
 
   /** Type of image dimension */
   using ImageDimensionType = typename Superclass::ImageDimensionType;
@@ -128,7 +131,7 @@ public:
   using SpacingValueType = typename Superclass::SpacingValueType;
 
   /** Origin type alias support.  The origin is the geometric coordinates
-   * of the index (0,0). */
+   * of the index ( 0, 0 ). */
   using PointType = typename Superclass::PointType;
 
   /** Offset type alias (relative position between indices) */
@@ -140,36 +143,36 @@ public:
    *
    * \deprecated Use RebindImageType instead
    */
-  template< typename UPixelType, unsigned int NUImageDimension = ImageDimension >
+  template< typename UPixelType, unsigned int NUImageDimension = Self::ImageDimension >
   struct Rebind
   {
     using Type = itk::TorchImage< UPixelType, NUImageDimension >;
   };
 
-  template< typename UPixelType, unsigned int NUImageDimension = ImageDimension >
+  template< typename UPixelType, unsigned int NUImageDimension = Self::ImageDimension >
   using RebindImageType = itk::TorchImage< UPixelType, NUImageDimension >;
 
   using TorchImagePixelHelper = TorchPixelHelper< PixelType >;
-  using DeepScalarType = typename TorchImagePixelHelper::DeepScalarType;
-  static constexpr unsigned int PixelDimension = TorchImagePixelHelper::PixelDimension;
-  static constexpr unsigned int TorchDimension = ImageDimension + PixelDimension;
+  using DeepScalarType = typename Self::TorchImagePixelHelper::DeepScalarType;
+  static constexpr unsigned int PixelDimension = Self::TorchImagePixelHelper::PixelDimension;
+  static constexpr unsigned int TorchDimension = Self::ImageDimension + Self::PixelDimension;
 
   enum DeviceType { itkCPU, itkCUDA };
   enum TensorInitializer { itkEmpty, itkZeros, itkOnes, itkRand, itkRandn };
 
   /** Select itkCUDA (on device #0) or itkCPU */
-  bool SetDevice( DeviceType deviceType );
+  bool SetDevice( typename Self::DeviceType deviceType );
 
   /** Select itkCUDA and a device number */
-  bool SetDevice( DeviceType deviceType, uint64_t cudaDeviceNumber );
+  bool SetDevice( typename Self::DeviceType deviceType, uint64_t cudaDeviceNumber );
 
   /** Query current device type and device number */
-  void GetDevice( DeviceType &deviceType, uint64_t &cudaDeviceNumber );
+  void GetDevice( typename Self::DeviceType &deviceType, uint64_t &cudaDeviceNumber );
 
   /** Allocate the torch image memory. The size of the torch image
    * must already be set, e.g. by calling SetRegions().  Returns false
    * if allocation to a non-existent GPU fails. */
-  void Allocate( TensorInitializer tensorInitializer = itkEmpty );
+  void Allocate( typename Self::TensorInitializer tensorInitializer = itkEmpty );
 
   /** Restore the data object to its initial state. This means releasing
    * memory. */
@@ -179,8 +182,8 @@ public:
    * Allocate() first. This version is for pixel types that are
    * simple scalars. */
   template< typename T = void >
-  typename std::enable_if< PixelDimension == 0, T >::type
-  FillBuffer( const PixelType &value )
+  typename std::enable_if< Self::PixelDimension == 0, T >::type
+  FillBuffer( const typename Self::PixelType &value )
     {
     m_Tensor.fill_( value );
     }
@@ -189,12 +192,12 @@ public:
    * Allocate() first. This version is for pixel types that are not
    * simple scalars. */
   template< typename T = void >
-  typename std::enable_if< PixelDimension != 0, T >::type
-  FillBuffer( const PixelType &value )
+  typename std::enable_if< Self::PixelDimension != 0, T >::type
+  FillBuffer( const typename Self::PixelType &value )
     {
-    const SizeType &bufferSize = Self::GetBufferedRegion().GetSize();
-    std::vector< at::indexing::TensorIndex > TorchIndex;
-    FillBufferPart( Self::ImageDimension, bufferSize, TorchIndex, value );
+    const typename Self::SizeType &bufferSize = this->GetBufferedRegion().GetSize();
+    std::vector< torch::indexing::TensorIndex > TorchIndex;
+    this->FillBufferPart( ImageDimension, bufferSize, TorchIndex, value );
     }
 
   /** \brief Set a pixel value.
@@ -202,36 +205,36 @@ public:
    * Allocate() needs to have been called first -- for efficiency,
    * this function does not check that the torch image has actually
    * been allocated yet. */
-  void SetPixel( const IndexType & index, const PixelType & value );
+  void SetPixel( const IndexType &index, const PixelType &value );
 
   /** \brief Get a reference to a pixel (e.g. for editing).
    *
    * For efficiency, this function does not check that the
    * torch image has actually been allocated yet. */
-  TorchImagePixelHelper GetPixel( const IndexType & index );
-  const TorchImagePixelHelper GetPixel( const IndexType & index ) const;
+  typename Self::TorchImagePixelHelper GetPixel( const IndexType &index );
+  const typename Self::TorchImagePixelHelper GetPixel( const IndexType &index ) const;
 
   /** \brief Access a pixel. This version can be an lvalue.
    *
    * For efficiency, this function does not check that the
    * torch image has actually been allocated yet. */
-  TorchImagePixelHelper operator[]( const IndexType & index )
+  typename Self::TorchImagePixelHelper operator[]( const IndexType &index )
     {
     return this->GetPixel( index );
     }
 
-  const TorchImagePixelHelper operator[]( const IndexType & index ) const
+  const typename Self::TorchImagePixelHelper operator[]( const IndexType &index ) const
     {
     return this->GetPixel( index );
     }
 
   /** The pointer might be to GPU memory and, if so, could not be
    * dereferenced */
-  virtual TPixel *GetBufferPointer();
+  virtual typename Self::PixelType *GetBufferPointer();
 
   /** The pointer might be to GPU memory and, if so, could not be
    * dereferenced */
-  virtual const TPixel *GetBufferPointer() const;
+  virtual const typename Self::PixelType *GetBufferPointer() const;
 
   /** Graft the data and information from one image to another. This
    * is a convenience method to setup a second image with all the meta
@@ -243,7 +246,7 @@ public:
    * simply calls CopyInformation() and copies the region ivars.
    * The implementation here refers to the superclass' implementation
    * and then copies over the pixel container. */
-  virtual void Graft( const Self * data );
+  virtual void Graft( const Self *data );
 
   constexpr unsigned int GetNumberOfComponentsPerPixel() const override
     {
@@ -253,11 +256,11 @@ public:
 protected:
   TorchImage();
   ~TorchImage() override = default;
-  void PrintSelf( std::ostream & os, Indent indent ) const override;
-  void Graft( const DataObject * data ) override;
+  void PrintSelf( std::ostream &os, Indent indent ) const override;
+  void Graft( const DataObject *data ) override;
 
   /** Recursively fill part of the full buffer */
-  void FillBufferPart( int CurrentDimensions, const SizeType &BufferSize, std::vector< at::indexing::TensorIndex > &TorchIndex, const PixelType &value );
+  void FillBufferPart( int CurrentDimensions, const typename Self::SizeType &BufferSize, std::vector< torch::indexing::TensorIndex > &TorchIndex, const typename Self::PixelType &value );
 
   /** The enum representation of the data type in the underlying torch
    * library. */
@@ -284,7 +287,7 @@ protected:
 
 private:
   /** itkCUDA or itkCPU */
-  DeviceType m_DeviceType;
+  typename Self::DeviceType m_DeviceType;
 
   /** Whether tensor has been allocated */
   bool m_Allocated;
@@ -295,6 +298,12 @@ private:
   /** The torch::Tensor object points to the pixel data and also
    * stores information about size, data type, device, etc. */
   torch::Tensor m_Tensor;
+
+  template< typename NTInputTorchImage >
+  friend class TorchImageToImageFilter;
+
+  template< typename NTInputImage >
+  friend class ImageToTorchImageFilter;
 };
 } // end namespace itk
 

@@ -150,7 +150,7 @@ public:
 
   TorchPixelHelper &operator=( const PixelType &value )
     {
-    for( unsigned int i = 0; i < Self::NumberOfComponents; ++i )
+    for( unsigned int i = 0; i < NumberOfComponents; ++i )
       {
       m_TorchIndex.push_back( static_cast< int64_t >( i ) );
       NextTorchPixelHelper { m_Tensor, m_TorchIndex } = value[i];
@@ -162,7 +162,7 @@ public:
   operator PixelType() const
     {
     PixelType response;
-    for( unsigned int i = 0; i < Self::NumberOfComponents; ++i )
+    for( unsigned int i = 0; i < NumberOfComponents; ++i )
       {
       m_TorchIndex.push_back( static_cast< int64_t >( i ) );
       response[i] = NextTorchPixelHelper { m_Tensor, m_TorchIndex };
@@ -188,6 +188,44 @@ protected:
   torch::Tensor m_Tensor;
   mutable std::vector< at::indexing::TensorIndex > m_TorchIndex;
 };
+
+template< typename TPixelType >
+typename std::enable_if< std::is_arithmetic< TPixelType >::value && sizeof( TPixelType ) <= 1, std::string >::type
+FormatPixel( TPixelType pixel )
+{
+  std::ostringstream os;
+  os << ( int ) pixel;
+  return os.str();
+}
+
+template< typename TPixelType >
+typename std::enable_if< std::is_arithmetic< TPixelType >::value && sizeof( TPixelType ) >= 2, std::string >::type
+FormatPixel( TPixelType pixel )
+{
+  std::ostringstream os;
+  os << pixel;
+  return os.str();
+}
+
+template< typename TPixelType >
+typename std::enable_if< !std::is_arithmetic< TPixelType >::value, std::string >::type
+FormatPixel( TPixelType const &pixel )
+{
+  std::ostringstream os;
+  os << "[";
+  if( TPixelType::Dimension > 0 )
+    {
+    os << FormatPixel( pixel[0] );
+    }
+  for( int i = 1; i < TPixelType::Dimension; ++i )
+    {
+    os << ", " << FormatPixel( pixel[i] );
+    }
+  os << "]";
+  return os.str();
+}
+
+
 } // end namespace itk
 
 #ifndef ITK_MANUAL_INSTANTIATION

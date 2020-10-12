@@ -41,12 +41,12 @@ public:
   void
   Execute( const itk::Object *caller, const itk::EventObject &event ) override
   {
-    if ( !itk::ProgressEvent().CheckEvent( &event ) )
+    if( !itk::ProgressEvent().CheckEvent( &event ) )
     {
       return;
     }
-    const auto *processObject = dynamic_cast<const itk::ProcessObject *>( caller );
-    if ( !processObject )
+    const auto *processObject = dynamic_cast< const itk::ProcessObject * >( caller );
+    if( !processObject )
     {
       return;
     }
@@ -70,12 +70,12 @@ itkTorchImageTestByTypeAndDimension(
   ShowProgress::Pointer showProgress = ShowProgress::New();
   image->AddObserver( itk::ProgressEvent(), showProgress );
 
-  // Choose itkCUDA as the device type
+  // Choose ImageType::itkCUDA as the device type
   typename ImageType::DeviceType MyDeviceType = ImageType::itkCUDA;
   bool response = image->SetDevice( MyDeviceType );
-  if ( !response )
+  if( !response )
     {
-    // itkCUDA not available.  Trying itkCPU instead.
+    // ImageType::itkCUDA not available.  Trying ImageType::itkCPU instead.
     MyDeviceType = ImageType::itkCPU;
     response = image->SetDevice( MyDeviceType );
     }
@@ -129,7 +129,7 @@ int itkTorchImageTest( int argc, char *argv[] )
 {
   std::cout << "Test compiled " << __DATE__ << " " << __TIME__ << std::endl;
 
-  if ( argc < 2 )
+  if( argc< 2 )
     {
     std::cerr << "Missing parameters." << std::endl;
     std::cerr << "Usage: " << itkNameOfTestExecutableMacro( argv );
@@ -147,7 +147,7 @@ int itkTorchImageTest( int argc, char *argv[] )
   {
     using PixelType = bool;
     constexpr int ImageDimension = 6;
-    const std::string StructName = "TorchImage<bool, 6>";
+    const std::string StructName = "TorchImage< bool, 6 >";
     const int SizePerDimension = 3;
     const PixelType firstValue = false;
     const PixelType secondValue = true;
@@ -167,7 +167,7 @@ int itkTorchImageTest( int argc, char *argv[] )
   {
     using PixelType = uint8_t;
     constexpr int ImageDimension = 3;
-    const std::string StructName = "TorchImage<uint8_t, 3>";
+    const std::string StructName = "TorchImage< uint8_t, 3 >";
     const int SizePerDimension = 16;
     const PixelType firstValue = 10;
     const PixelType secondValue = 130;
@@ -182,7 +182,7 @@ int itkTorchImageTest( int argc, char *argv[] )
   {
     using PixelType = int8_t;
     constexpr int ImageDimension = 4;
-    const std::string StructName = "TorchImage<int8_t, 4>";
+    const std::string StructName = "TorchImage< int8_t, 4 >";
     const int SizePerDimension = 10;
     const PixelType firstValue = 10;
     const PixelType secondValue = -11;
@@ -197,7 +197,7 @@ int itkTorchImageTest( int argc, char *argv[] )
   {
     using PixelType = int16_t;
     constexpr int ImageDimension = 2;
-    const std::string StructName = "TorchImage<int16_t, 2>";
+    const std::string StructName = "TorchImage< int16_t, 2 >";
     const int SizePerDimension = 256;
     const PixelType firstValue = 32000;
     const PixelType secondValue = -32000;
@@ -212,7 +212,7 @@ int itkTorchImageTest( int argc, char *argv[] )
   {
     using PixelType = int32_t;
     constexpr int ImageDimension = 5;
-    const std::string StructName = "TorchImage<int32_t, 5>";
+    const std::string StructName = "TorchImage< int32_t, 5 >";
     const int SizePerDimension = 8;
     const PixelType firstValue = 2147483000;
     const PixelType secondValue = -2147483000;
@@ -227,7 +227,7 @@ int itkTorchImageTest( int argc, char *argv[] )
   {
     using PixelType = int64_t;
     constexpr int ImageDimension = 1;
-    const std::string StructName = "TorchImage<int64_t, 1>";
+    const std::string StructName = "TorchImage< int64_t, 1 >";
     const int SizePerDimension = 1000;
     const PixelType firstValue = 9223372036854775000LL;
     const PixelType secondValue = -9223372036854775000LL;
@@ -242,7 +242,7 @@ int itkTorchImageTest( int argc, char *argv[] )
   {
     using PixelType = float;
     constexpr int ImageDimension = 2;
-    const std::string StructName = "TorchImage<float, 2>";
+    const std::string StructName = "TorchImage< float, 2 >";
     const int SizePerDimension = 128;
     const PixelType firstValue = 1.1f;
     const PixelType secondValue = -1.2f;
@@ -257,7 +257,7 @@ int itkTorchImageTest( int argc, char *argv[] )
   {
     using PixelType = double;
     constexpr int ImageDimension = 3;
-    const std::string StructName = "TorchImage<double, 3>";
+    const std::string StructName = "TorchImage< double, 3 >";
     const int SizePerDimension = 32;
     const PixelType firstValue = 1.4;
     const PixelType secondValue = -1.5;
@@ -273,12 +273,12 @@ int itkTorchImageTest( int argc, char *argv[] )
   // We also support various vector pixel types,
   //   RGBPixel, RGBAPixel, Vector, CovariantVector
   // including recursive forms,
-  //   Vector<CovariantVector<<RGBPixel<Vector>>>, etc.
+  //   Vector< CovariantVector< RGBPixel< Vector > > >, etc.
 
   {
     using PixelType = itk::RGBPixel< uint8_t >;
     constexpr int ImageDimension = 3;
-    const std::string StructName = "TorchImage<RGBPixel<uint8_t>, 3>";
+    const std::string StructName = "TorchImage< RGBPixel< uint8_t >, 3 >";
     const int SizePerDimension = 20;
     const typename PixelType::ValueType firstValue[] = {1, 1, 1};
     const typename PixelType::ValueType secondValue[] = {2, 2, 2};
@@ -293,7 +293,7 @@ int itkTorchImageTest( int argc, char *argv[] )
   {
     using PixelType = itk::RGBAPixel< uint8_t >;
     constexpr int ImageDimension = 2;
-    const std::string StructName = "TorchImage<RGBAPixel<uint8_t>, 2>";
+    const std::string StructName = "TorchImage< RGBAPixel< uint8_t >, 2 >";
     const int SizePerDimension = 30;
     const typename PixelType::ValueType firstValue[] = {1, 1, 1, 255};
     const typename PixelType::ValueType secondValue[] = {2, 2, 2, 128};
@@ -309,7 +309,7 @@ int itkTorchImageTest( int argc, char *argv[] )
     constexpr int VectorDimension = 2;
     using PixelType = itk::Vector< int16_t, VectorDimension >;
     constexpr int ImageDimension = 2;
-    const std::string StructName = "TorchImage<Vector<int16_t, 2>, 2>";
+    const std::string StructName = "TorchImage< Vector< int16_t, 2 >, 2 >";
     const int SizePerDimension = 250;
     const typename PixelType::ValueType firstValue[VectorDimension] = {1, 2};
     const typename PixelType::ValueType secondValue[VectorDimension] = {-100, 32000};
@@ -326,7 +326,7 @@ int itkTorchImageTest( int argc, char *argv[] )
     constexpr int VectorDimension = 3;
     using PixelType = itk::Vector< int16_t, VectorDimension >;
     constexpr int ImageDimension = 4;
-    const std::string StructName = "TorchImage<Vector<int16_t, 3>, 4>";
+    const std::string StructName = "TorchImage< Vector< int16_t, 3 >, 4 >";
     const int SizePerDimension = 12;
     const typename PixelType::ValueType firstValue[VectorDimension] = {1, 2, 3};
     const typename PixelType::ValueType secondValue[VectorDimension] = {-310, 3100, -31000};
@@ -342,7 +342,7 @@ int itkTorchImageTest( int argc, char *argv[] )
     constexpr int VectorDimension = 4;
     using PixelType = itk::CovariantVector< int16_t, VectorDimension >;
     constexpr int ImageDimension = 5;
-    const std::string StructName = "TorchImage<CovariantVector<int16_t, 4>, 5>";
+    const std::string StructName = "TorchImage< CovariantVector< int16_t, 4 >, 5 >";
     const int SizePerDimension = 4;
     const typename PixelType::ValueType firstValue[VectorDimension] = {1, 2, 3, 4};
     const typename PixelType::ValueType secondValue[VectorDimension] = {-310, 3100, -31000, 31};
