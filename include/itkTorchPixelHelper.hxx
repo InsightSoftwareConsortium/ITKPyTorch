@@ -26,12 +26,12 @@ namespace itk
 template< typename TPixelType, typename Void >
 constexpr unsigned int
 TorchPixelHelper< TPixelType, Void >
-::NumberOfComponents;
+::NumberOfTopLevelComponents;
 
 template< typename TPixelType, typename Void >
 constexpr unsigned int
 TorchPixelHelper< TPixelType, Void >
-::SizeOf;
+::NumberOfDeepComponents;
 
 template< typename TPixelType, typename Void >
 constexpr unsigned int

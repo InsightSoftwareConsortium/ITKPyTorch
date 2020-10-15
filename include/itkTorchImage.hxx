@@ -29,7 +29,7 @@ TorchImage< TPixel, VImageDimension >
 ::ImageDimension;
 
 template< typename TPixel, unsigned int VImageDimension >
-constexpr at::ScalarType
+constexpr torch::ScalarType
 TorchImage< TPixel, VImageDimension >
 ::TorchValueType;
 
@@ -46,15 +46,15 @@ TorchImage< TPixel, VImageDimension >
 template< typename TPixel, unsigned int VImageDimension >
 bool
 TorchImage< TPixel, VImageDimension >
-::SetDevice( DeviceType deviceType )
+::SetDevice( typename Self::DeviceType deviceType )
 {
   switch( deviceType )
     {
-    case itkCUDA:
+    case Self::itkCUDA:
       return this->SetDevice( deviceType, 0 );
       break;
     case itkCPU:
-      if( m_DeviceType == itkCPU )
+      if( m_DeviceType == Self::itkCPU )
         {
         return true;            // no change
         }
@@ -72,16 +72,16 @@ TorchImage< TPixel, VImageDimension >
 template< typename TPixel, unsigned int VImageDimension >
 bool
 TorchImage< TPixel, VImageDimension >
-::SetDevice( DeviceType deviceType, uint64_t cudaDeviceNumber )
+::SetDevice( typename Self::DeviceType deviceType, uint64_t cudaDeviceNumber )
 {
   switch( deviceType )
     {
-    case itkCUDA:
-      if( m_DeviceType == itkCUDA && m_CudaDeviceNumber == cudaDeviceNumber )
+    case Self::itkCUDA:
+      if( m_DeviceType == Self::itkCUDA && m_CudaDeviceNumber == cudaDeviceNumber )
         {
         return true;            // no change
         }
-      if ( !( torch::cuda::is_available() && cudaDeviceNumber < torch::cuda::device_count() ) )
+      if( !( torch::cuda::is_available() && cudaDeviceNumber< torch::cuda::device_count() ) )
         {
         return false;
         }
@@ -104,7 +104,7 @@ TorchImage< TPixel, VImageDimension >
 template< typename TPixel, unsigned int VImageDimension >
 void
 TorchImage< TPixel, VImageDimension >
-::GetDevice( DeviceType &deviceType, uint64_t &cudaDeviceNumber )
+::GetDevice( typename Self::DeviceType &deviceType, uint64_t &cudaDeviceNumber )
 {
   deviceType = m_DeviceType;
   cudaDeviceNumber = m_CudaDeviceNumber;
@@ -117,9 +117,9 @@ TorchImage< TPixel, VImageDimension >
 {
   // Get index components of the pixel, reversing their order so that
   // the first one varies the slowest in the buffer.
-  const SizeType &bufferSize = Self::GetBufferedRegion().GetSize();
+  const typename Self::SizeType &bufferSize = this->GetBufferedRegion().GetSize();
   std::vector< int64_t > torchSize;
-  for( SizeValueType i = 0; i < Self::ImageDimension; ++i )
+  for( typename Self::SizeValueType i = 0; i < Self::ImageDimension; ++i )
     {
     torchSize.push_back( bufferSize[Self::ImageDimension-1-i] );
     }
@@ -131,7 +131,7 @@ TorchImage< TPixel, VImageDimension >
 template< typename TPixel, unsigned int VImageDimension >
 void
 TorchImage< TPixel, VImageDimension >
-::Allocate( TensorInitializer tensorInitializer )
+::Allocate( typename Self::TensorInitializer tensorInitializer )
 {
   // itkImage does not call Superclass::Allocate.  Should we?
   // Superclass::Allocate( initializePixels );
@@ -143,29 +143,29 @@ TorchImage< TPixel, VImageDimension >
   c10::TensorOptions tensorOptions = torch::dtype( Self::TorchValueType ).layout( torch::kStrided ).requires_grad( false );
   switch( m_DeviceType )
     {
-    case itkCUDA:
+    case Self::itkCUDA:
       tensorOptions = tensorOptions.device( torch::kCUDA, m_CudaDeviceNumber );
       break;
-    case itkCPU:
+    case Self::itkCPU:
       tensorOptions = tensorOptions.device( torch::kCPU );
       break;
     }
 
   switch( tensorInitializer )
     {
-    case itkEmpty:
+    case Self::itkEmpty:
       m_Tensor = torch::empty( torchSize, tensorOptions );
       break;
-    case itkZeros:
+    case Self::itkZeros:
       m_Tensor = torch::zeros( torchSize, tensorOptions );
       break;
-    case itkOnes:
+    case Self::itkOnes:
       m_Tensor = torch::ones( torchSize, tensorOptions );
       break;
-    case itkRand:
+    case Self::itkRand:
       m_Tensor = torch::rand( torchSize, tensorOptions );
       break;
-    case itkRandn:
+    case Self::itkRandn:
       m_Tensor = torch::randn( torchSize, tensorOptions );
       break;
     }
@@ -195,19 +195,19 @@ TorchImage< TPixel, VImageDimension >
 template< typename TPixel, unsigned int VImageDimension >
 void
 TorchImage< TPixel, VImageDimension >
-::FillBufferPart( int CurrentDimensions, const SizeType &BufferSize, std::vector< at::indexing::TensorIndex > &TorchIndex, const PixelType &value )
+::FillBufferPart( int CurrentDimensions, const typename Self::SizeType &BufferSize, std::vector< torch::indexing::TensorIndex > &TorchIndex, const typename Self::PixelType &value )
 {
   if( CurrentDimensions == 0 )
     {
-    TorchImagePixelHelper {m_Tensor, TorchIndex} = value;
+    Self::TorchImagePixelHelper {m_Tensor, TorchIndex} = value;
     }
   else
     {
     // Slowest varying dimension in BufferSize is last
-    for( SizeValueType i = 0; i < BufferSize[CurrentDimensions-1]; ++i )
+    for( typename Self::SizeValueType i = 0; i < BufferSize[CurrentDimensions-1]; ++i )
       {
       TorchIndex.push_back( static_cast< int64_t >( i ) );
-      FillBufferPart( CurrentDimensions-1, BufferSize, TorchIndex, value );
+      this->FillBufferPart( CurrentDimensions-1, BufferSize, TorchIndex, value );
       TorchIndex.pop_back();
       }
     }
@@ -216,61 +216,61 @@ TorchImage< TPixel, VImageDimension >
 template< typename TPixel, unsigned int VImageDimension >
 void
 TorchImage< TPixel, VImageDimension >
-::SetPixel( const IndexType & index, const PixelType & value )
+::SetPixel( const typename Self::IndexType &index, const typename Self::PixelType &value )
 {
-  GetPixel( index ) = value;
+  this->GetPixel( index ) = value;
 }
 
 template< typename TPixel, unsigned int VImageDimension >
 typename TorchImage< TPixel, VImageDimension >::TorchImagePixelHelper
 TorchImage< TPixel, VImageDimension >
-::GetPixel( const IndexType & index )
+::GetPixel( const typename Self::IndexType &index )
 {
-  std::vector< at::indexing::TensorIndex > TorchIndex;
+  std::vector< torch::indexing::TensorIndex > TorchIndex;
   for( unsigned int i = 0; i < Self::ImageDimension; ++i )
     {
     TorchIndex.push_back( static_cast< int64_t >( index[Self::ImageDimension-1-i] ) );
     }
-  return TorchImagePixelHelper { m_Tensor, TorchIndex };
+  return Self::TorchImagePixelHelper { m_Tensor, TorchIndex };
 }
 
 template< typename TPixel, unsigned int VImageDimension >
 const typename TorchImage< TPixel, VImageDimension >::TorchImagePixelHelper
 TorchImage< TPixel, VImageDimension >
-::GetPixel( const IndexType & index ) const
+::GetPixel( const typename Self::IndexType &index ) const
 {
-  std::vector< at::indexing::TensorIndex > TorchIndex;
+  std::vector< torch::indexing::TensorIndex > TorchIndex;
   for( unsigned int i = 0; i < Self::ImageDimension; ++i )
     {
     TorchIndex.push_back( static_cast< int64_t >( index[Self::ImageDimension-1-i] ) );
     }
-  return TorchImagePixelHelper { m_Tensor, TorchIndex };
+  return Self::TorchImagePixelHelper { m_Tensor, TorchIndex };
 }
 
 /** The pointer might be to GPU memory and, if so, cannot be directly
  * dereferenced */
 template< typename TPixel, unsigned int VImageDimension >
-TPixel *
+typename TorchImage< TPixel, VImageDimension >::PixelType *
 TorchImage< TPixel, VImageDimension >
 ::GetBufferPointer()
 {
-  return reinterpret_cast< TPixel * >( m_Tensor.data_ptr< DeepScalarType >() );
+  return reinterpret_cast< typename Self::PixelType * >( m_Tensor.data_ptr< DeepScalarType >() );
 }
 
 /** The pointer might be to GPU memory and, if so, cannot be directly
  * dereferenced */
 template< typename TPixel, unsigned int VImageDimension >
-const TPixel *
+const typename TorchImage< TPixel, VImageDimension >::PixelType *
 TorchImage< TPixel, VImageDimension >
 ::GetBufferPointer() const
 {
-  return reinterpret_cast< const TPixel * >( m_Tensor.data_ptr< DeepScalarType >() );
+  return reinterpret_cast< const typename Self::PixelType * >( m_Tensor.data_ptr< DeepScalarType >() );
 }
 
 template< typename TPixel, unsigned int VImageDimension >
 void
 TorchImage< TPixel, VImageDimension >
-::Graft( const Self * data )
+::Graft( const Self *data )
 {
   Superclass::Graft( data );
   m_DeviceType = data->m_DeviceType;
@@ -285,14 +285,14 @@ TorchImage< TPixel, VImageDimension >
 template< typename TPixel, unsigned int VImageDimension >
 void
 TorchImage< TPixel, VImageDimension >
-::Graft( const DataObject * data )
+::Graft( const DataObject *data )
 {
   if( data )
     {
     // Attempt to cast data to an Image
     const auto * const imgData = dynamic_cast< const Self * >( data );
 
-    if ( imgData != nullptr )
+    if( imgData != nullptr )
       {
       this->Graft( imgData );
       }
@@ -309,20 +309,20 @@ template< typename TPixel, unsigned int VImageDimension >
 TorchImage< TPixel, VImageDimension >
 ::TorchImage()
 {
-  m_DeviceType = itkCPU;
+  m_DeviceType = Self::itkCPU;
   m_CudaDeviceNumber = 0;
   m_Allocated = false;
   m_Tensor = torch::Tensor();
-  // SetDevice checks whether GPU exists
-  this->SetDevice(itkCUDA, 0);
+  // SetDevice sets this TorchImage to Self::itkCUDA only if the GPU exists.
+  this->SetDevice( Self::itkCUDA, 0 );
 }
 
 template< typename TPixel, unsigned int VImageDimension >
 void
 TorchImage< TPixel, VImageDimension >
-::PrintSelf( std::ostream & os, Indent indent ) const
+::PrintSelf( std::ostream &os, Indent indent ) const
 {
-  Superclass::PrintSelf(os, indent);
+  Superclass::PrintSelf( os, indent );
   os
     << indent << "m_DeviceType: " << m_DeviceType << std::endl
     << indent << "m_Allocated: " << m_Allocated << std::endl
