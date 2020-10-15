@@ -16,7 +16,7 @@
  *
  *=========================================================================*/
 
-#include "itkTorchImageToTorchImageFilter.h"
+#include "itkTorchImageToImageFilter.h"
 
 #include "itkCommand.h"
 #include "itkTestingMacros.h"
@@ -55,7 +55,7 @@ public:
 };
 } // namespace
 
-int itkTorchImageToTorchImageFilterTest( int argc, char *argv[] )
+int itkTorchImageToImageFilterTest( int argc, char *argv[] )
 {
   std::cout << "Test compiled " << __DATE__ << " " << __TIME__ << std::endl;
 
@@ -76,90 +76,109 @@ int itkTorchImageToTorchImageFilterTest( int argc, char *argv[] )
   // though we do not support 16-bit floats.
 #if 0
   {
-    // This should fail to compile
+    // This should fail to compile because the itk::TorchImageToImageFilter template parameter must be an
+    // itk::TorchImage.
     using PixelType = bool;
     constexpr int ImageDimension = 6;
-    using ImageType = itk::TorchImage< PixelType, ImageDimension >;
-    using DifferentImageType = itk::Image< PixelType, ImageDimension >;
-    using FilterType = itk::TorchImageToTorchImageFilter< ImageType, DifferentImageType >;
+    using ImageType = itk::Image< PixelType, ImageDimension >;
+    using FilterType = itk::TorchImageToImageFilter< ImageType >;
     typename FilterType::Pointer filter = FilterType::New();
   }
 #endif
   {
     using PixelType = bool;
     constexpr int ImageDimension = 6;
-    using ImageType = itk::TorchImage< PixelType, ImageDimension >;
-    using FilterType = itk::TorchImageToTorchImageFilter< ImageType, ImageType >;
+    using InputTorchImageType = itk::TorchImage< PixelType, ImageDimension >;
+    using OutputImageType = itk::Image< PixelType, ImageDimension >;
+    using FilterType = itk::TorchImageToImageFilter< InputTorchImageType >;
     typename FilterType::Pointer filter = FilterType::New();
   }
   {
     using PixelType = uint8_t;
     constexpr int ImageDimension = 6;
-    using ImageType = itk::TorchImage< PixelType, ImageDimension >;
-    using FilterType = itk::TorchImageToTorchImageFilter< ImageType, ImageType >;
+    using InputTorchImageType = itk::TorchImage< PixelType, ImageDimension >;
+    using OutputImageType = itk::Image< PixelType, ImageDimension >;
+    using FilterType = itk::TorchImageToImageFilter< InputTorchImageType >;
     typename FilterType::Pointer filter = FilterType::New();
   }
   {
     using PixelType = int8_t;
     constexpr int ImageDimension = 4;
-    using ImageType = itk::TorchImage< PixelType, ImageDimension >;
-    using FilterType = itk::TorchImageToTorchImageFilter< ImageType, ImageType >;
+    using InputTorchImageType = itk::TorchImage< PixelType, ImageDimension >;
+    using OutputImageType = itk::Image< PixelType, ImageDimension >;
+    using FilterType = itk::TorchImageToImageFilter< InputTorchImageType >;
     typename FilterType::Pointer filter = FilterType::New();
   }
   {
     using PixelType = int16_t;
     constexpr int ImageDimension = 3;
-    using ImageType = itk::TorchImage< PixelType, ImageDimension >;
-    using FilterType = itk::TorchImageToTorchImageFilter< ImageType, ImageType >;
+    using InputTorchImageType = itk::TorchImage< PixelType, ImageDimension >;
+    using OutputImageType = itk::Image< PixelType, ImageDimension >;
+    using FilterType = itk::TorchImageToImageFilter< InputTorchImageType >;
     typename FilterType::Pointer filter = FilterType::New();
   }
   {
     using PixelType = int32_t;
     constexpr int ImageDimension = 2;
-    using ImageType = itk::TorchImage< PixelType, ImageDimension >;
-    using FilterType = itk::TorchImageToTorchImageFilter< ImageType, ImageType >;
+    using InputTorchImageType = itk::TorchImage< PixelType, ImageDimension >;
+    using OutputImageType = itk::Image< PixelType, ImageDimension >;
+    using FilterType = itk::TorchImageToImageFilter< InputTorchImageType >;
     typename FilterType::Pointer filter = FilterType::New();
   }
   {
     using PixelType = int64_t;
     constexpr int ImageDimension = 1;
-    using ImageType = itk::TorchImage< PixelType, ImageDimension >;
-    using FilterType = itk::TorchImageToTorchImageFilter< ImageType, ImageType >;
+    using InputTorchImageType = itk::TorchImage< PixelType, ImageDimension >;
+    using OutputImageType = itk::Image< PixelType, ImageDimension >;
+    using FilterType = itk::TorchImageToImageFilter< InputTorchImageType >;
     typename FilterType::Pointer filter = FilterType::New();
   }
   {
     using PixelType = float;
     constexpr int ImageDimension = 2;
-    using ImageType = itk::TorchImage< PixelType, ImageDimension >;
-    using FilterType = itk::TorchImageToTorchImageFilter< ImageType, ImageType >;
+    using InputTorchImageType = itk::TorchImage< PixelType, ImageDimension >;
+    using OutputImageType = itk::Image< PixelType, ImageDimension >;
+    using FilterType = itk::TorchImageToImageFilter< InputTorchImageType >;
     typename FilterType::Pointer filter = FilterType::New();
   }
   {
     using PixelType = double;
     constexpr int ImageDimension = 1;
-    using ImageType = itk::TorchImage< PixelType, ImageDimension >;
-    using FilterType = itk::TorchImageToTorchImageFilter< ImageType, ImageType >;
+    using InputTorchImageType = itk::TorchImage< PixelType, ImageDimension >;
+    using OutputImageType = itk::Image< PixelType, ImageDimension >;
+    using FilterType = itk::TorchImageToImageFilter< InputTorchImageType >;
     typename FilterType::Pointer filter = FilterType::New();
   }
   {
     using PixelType = itk::RGBPixel< uint8_t >;
     constexpr int ImageDimension = 2;
-    using ImageType = itk::TorchImage< PixelType, ImageDimension >;
-    using FilterType = itk::TorchImageToTorchImageFilter< ImageType, ImageType >;
+    using InputTorchImageType = itk::TorchImage< PixelType, ImageDimension >;
+    using OutputImageType = itk::Image< PixelType, ImageDimension >;
+    using FilterType = itk::TorchImageToImageFilter< InputTorchImageType >;
+    typename FilterType::Pointer filter = FilterType::New();
+  }
+  {
+    using PixelType = itk::RGBAPixel< int16_t >;
+    constexpr int ImageDimension = 2;
+    using InputTorchImageType = itk::TorchImage< PixelType, ImageDimension >;
+    using OutputImageType = itk::Image< PixelType, ImageDimension >;
+    using FilterType = itk::TorchImageToImageFilter< InputTorchImageType >;
     typename FilterType::Pointer filter = FilterType::New();
   }
   {
     using PixelType = itk::Vector< float, 2 >;
     constexpr int ImageDimension = 3;
-    using ImageType = itk::TorchImage< PixelType, ImageDimension >;
-    using FilterType = itk::TorchImageToTorchImageFilter< ImageType, ImageType >;
+    using InputTorchImageType = itk::TorchImage< PixelType, ImageDimension >;
+    using OutputImageType = itk::Image< PixelType, ImageDimension >;
+    using FilterType = itk::TorchImageToImageFilter< InputTorchImageType >;
     typename FilterType::Pointer filter = FilterType::New();
   }
   {
     using PixelType = itk::CovariantVector< double, 3 >;
     constexpr int ImageDimension = 2;
-    using ImageType = itk::TorchImage< PixelType, ImageDimension >;
-    using FilterType = itk::TorchImageToTorchImageFilter< ImageType, ImageType >;
+    using InputTorchImageType = itk::TorchImage< PixelType, ImageDimension >;
+    using OutputImageType = itk::Image< PixelType, ImageDimension >;
+    using FilterType = itk::TorchImageToImageFilter< InputTorchImageType >;
     typename FilterType::Pointer filter = FilterType::New();
   }
 

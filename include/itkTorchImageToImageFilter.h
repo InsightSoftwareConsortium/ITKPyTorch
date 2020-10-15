@@ -18,89 +18,71 @@
 #ifndef itkTorchImageToImageFilter_h
 #define itkTorchImageToImageFilter_h
 
-#include "itkImageToImageFilter.h"
-#include "itkImageRegionIterator.h"
-#include "itkImageRegionConstIterator.h"
-
+#include <type_traits>
 #include "itkTorchImage.h"
+#include "itkImageToImageFilter.h"
 
 namespace itk
 {
-
 /** \class TorchImageToImageFilter
  *
- * \brief Converts an itk::TorchImage to an itk::Image.
+ * \brief class to abstract the behaviour of the Torch filters.
  *
- * Conversions between TorchImage and Image permit pipelines with
- * steps for either kind of image.
+ * TorchImageToImageFilter is the Torch version of ImageToImageFilter.
+ * This class can accept both CPU and Torch image as input and output,
+ * and apply filter accordingly. If Torch is available for use, then
+ * TorchGenerateData() is called. Otherwise, GenerateData() in the
+ * parent class (i.e., ImageToImageFilter) will be called.
  *
  * \ingroup PyTorch
- *
  */
-template< typename TInputTorchImage >
-class ITK_TEMPLATE_EXPORT TorchImageToImageFilter
-  : public ImageToImageFilter< TInputTorchImage, Image< typename TInputTorchImage::PixelType, TInputTorchImage::ImageDimension > >
+
+template < typename TInputImage,
+           typename TOutputImage,
+           typename TParentImageFilter = ImageToImageFilter< TInputImage, TOutputImage > >
+class ITK_TEMPLATE_EXPORT TorchImageToImageFilter : public TParentImageFilter
 {
 public:
-#ifdef ITK_USE_CONCEPT_CHECKING
   static constexpr bool ConceptCheck =
-    std::is_same< TInputTorchImage, TorchImage< typename TInputTorchImage::PixelType, TInputTorchImage::ImageDimension > >::value;
-  static_assert( ConceptCheck, "itk::TorchImageToImageFilter template parameter must be an itk::TorchImage." );
-#endif
-
+    std::is_same< TInputImage, TorchImage< typename TInputImage::PixelType, TInputImage::ImageDimension > >::value ||
+    std::is_same< TOutputImage, TorchImage< typename TOutputImage::PixelType, TOutputImage::ImageDimension > >::value;
+  static_assert( ConceptCheck, "itk::TorchImageToImageFilter: at least one of the first two template parameters must be an itk::TorchImage." );
   ITK_DISALLOW_COPY_AND_ASSIGN( TorchImageToImageFilter );
 
-  using TOutputImage = Image< typename TInputTorchImage::PixelType, TInputTorchImage::ImageDimension >;
-  static constexpr unsigned int InputTorchImageDimension = TInputTorchImage::ImageDimension;
-  static constexpr unsigned int OutputImageDimension = TOutputImage::ImageDimension;
-
-  /** Standard class typedefs. */
-  using Self = TorchImageToImageFilter< TInputTorchImage >;
-  using Superclass = ImageToImageFilter< TInputTorchImage, TOutputImage >;
+  /** Standard class type aliases. */
+  using Self = TorchImageToImageFilter;
+  using Superclass = TParentImageFilter;
   using Pointer = SmartPointer< Self >;
   using ConstPointer = SmartPointer< const Self >;
 
   /** Some convenient type aliases. */
-  using InputTorchImageType = TInputTorchImage;
-  using InputTorchImagePointer = typename Self::InputTorchImageType::Pointer;
-  using InputTorchImageConstPointer = typename Self::InputTorchImageType::ConstPointer;
-  using InputTorchImageRegionType = typename Self::InputTorchImageType::RegionType;
-  using InputTorchImageRegionIterator = ImageRegionIterator< InputTorchImageType >;
-  using InputTorchImageRegionConstIterator = ImageRegionConstIterator< InputTorchImageType >;
-  using InputTorchImagePixelType = typename Self::InputTorchImageType::PixelType;
-  using InputTorchImageSizeType = Size< InputTorchImageDimension >;
-
+  using InputImageType = TInputImage;
+  using InputImagePointer = typename Self::InputImageType::Pointer;
+  using InputImageConstPointer = typename Self::InputImageType::ConstPointer;
+  using InputImageRegionType = typename Self::InputImageType::RegionType;
+  using InputImagePixelType = typename Self::InputImageType::PixelType;
   using OutputImageType = TOutputImage;
   using OutputImagePointer = typename Self::OutputImageType::Pointer;
   using OutputImageConstPointer = typename Self::OutputImageType::ConstPointer;
   using OutputImageRegionType = typename Self::OutputImageType::RegionType;
-  using OutputImageRegionIterator = ImageRegionIterator< OutputImageType >;
-  using OutputImageRegionConstIterator = ImageRegionConstIterator< OutputImageType >;
   using OutputImagePixelType = typename Self::OutputImageType::PixelType;
-  using OutputImageSizeType = Size< OutputImageDimension >;
 
-  /** Run-time type information. */
-  itkTypeMacro( TorchImageToImageFilter, ImageToImageFilter );
+  /** ImageDimension constants */
+  static constexpr unsigned int InputImageDimension = Self::TInputImage::ImageDimension;
+  static constexpr unsigned int OutputImageDimension = Self::TOutputImage::ImageDimension;
 
-  /** Standard New macro. */
+  /** Method for creation through the object factory. */
   itkNewMacro( Self );
+
+  /** Run-time type information (and related methods). */
+  itkTypeMacro( TorchImageToImageFilter, TParentImageFilter );
 
 protected:
   TorchImageToImageFilter() = default;
   ~TorchImageToImageFilter() override = default;
-
-  void PrintSelf( std::ostream &os, Indent indent ) ITKv5_CONST override;
-
-  void VerifyPreconditions() ITKv5_CONST override;
-
-  void GenerateData() override;
-
-private:
 };
-} // namespace itk
 
-#ifndef ITK_MANUAL_INSTANTIATION
-#  include "itkTorchImageToImageFilter.hxx"
+
+} // end namespace itk
+
 #endif
-
-#endif // itkTorchImageToImageFilter

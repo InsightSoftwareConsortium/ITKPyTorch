@@ -48,8 +48,8 @@ class TorchPixelHelper
 public:
   using Self = TorchPixelHelper;
   using PixelType = TPixelType;
-  static constexpr unsigned int NumberOfComponents = 0;
-  static constexpr unsigned int SizeOf = 0;
+  static constexpr unsigned int NumberOfTopLevelComponents = 0;
+  static constexpr unsigned int NumberOfDeepComponents = 0;
   static constexpr unsigned int PixelDimension = 0;
 };
 
@@ -80,8 +80,8 @@ public:
   using Self = TorchPixelHelper;
   using PixelType = TPixelType;
   using DeepScalarType = PixelType;
-  static constexpr unsigned int NumberOfComponents = 1;
-  static constexpr unsigned int SizeOf = NumberOfComponents;
+  static constexpr unsigned int NumberOfTopLevelComponents = 1;
+  static constexpr unsigned int NumberOfDeepComponents = NumberOfTopLevelComponents;
   static constexpr unsigned int PixelDimension = 0; // a zero-dimensional array
 
   TorchPixelHelper &operator=( const PixelType &value )
@@ -144,13 +144,13 @@ public:
   using ValueType = typename PixelType::ValueType;
   using NextTorchPixelHelper = TorchPixelHelper< ValueType >;
   using DeepScalarType = typename NextTorchPixelHelper::DeepScalarType;
-  static constexpr unsigned int NumberOfComponents = PixelType::Dimension;
-  static constexpr unsigned int SizeOf = NumberOfComponents * NextTorchPixelHelper::SizeOf;
+  static constexpr unsigned int NumberOfTopLevelComponents = PixelType::Dimension;
+  static constexpr unsigned int NumberOfDeepComponents = NumberOfTopLevelComponents * NextTorchPixelHelper::NumberOfDeepComponents;
   static constexpr unsigned int PixelDimension = 1 + NextTorchPixelHelper::PixelDimension;
 
   TorchPixelHelper &operator=( const PixelType &value )
     {
-    for( unsigned int i = 0; i < NumberOfComponents; ++i )
+    for( unsigned int i = 0; i < NumberOfTopLevelComponents; ++i )
       {
       m_TorchIndex.push_back( static_cast< int64_t >( i ) );
       NextTorchPixelHelper { m_Tensor, m_TorchIndex } = value[i];
@@ -162,7 +162,7 @@ public:
   operator PixelType() const
     {
     PixelType response;
-    for( unsigned int i = 0; i < NumberOfComponents; ++i )
+    for( unsigned int i = 0; i < NumberOfTopLevelComponents; ++i )
       {
       m_TorchIndex.push_back( static_cast< int64_t >( i ) );
       response[i] = NextTorchPixelHelper { m_Tensor, m_TorchIndex };
@@ -194,7 +194,7 @@ typename std::enable_if< std::is_arithmetic< TPixelType >::value && sizeof( TPix
 FormatPixel( TPixelType pixel )
 {
   std::ostringstream os;
-  os << ( int ) pixel;
+  os << static_cast< int >( pixel );
   return os.str();
 }
 

@@ -250,7 +250,7 @@ public:
 
   constexpr unsigned int GetNumberOfComponentsPerPixel() const override
     {
-    return Self::TorchImagePixelHelper::NumberOfComponents;
+    return Self::TorchImagePixelHelper::NumberOfTopLevelComponents;
     }
 
 protected:
@@ -298,12 +298,6 @@ private:
   /** The torch::Tensor object points to the pixel data and also
    * stores information about size, data type, device, etc. */
   torch::Tensor m_Tensor;
-
-  template< typename NTInputTorchImage >
-  friend class TorchImageToImageFilter;
-
-  template< typename NTInputImage >
-  friend class ImageToTorchImageFilter;
 };
 } // end namespace itk
 
