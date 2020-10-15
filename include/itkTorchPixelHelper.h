@@ -81,7 +81,7 @@ public:
   using PixelType = TPixelType;
   using DeepScalarType = PixelType;
   static constexpr unsigned int NumberOfTopLevelComponents = 1;
-  static constexpr unsigned int NumberOfDeepComponents = NumberOfTopLevelComponents;
+  static constexpr unsigned int NumberOfDeepComponents = 1;
   static constexpr unsigned int PixelDimension = 0; // a zero-dimensional array
 
   TorchPixelHelper &operator=( const PixelType &value )
