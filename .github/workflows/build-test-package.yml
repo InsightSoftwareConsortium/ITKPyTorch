@@ -75,11 +75,8 @@ jobs:
     - name: Download Pytorch
       run: |
         cd ..
-        git clone https://github.com/pytorch/pytorch.git
+        git clone -b ${{ matrix.pytorch-git-tag }} --recurse-submodule https://github.com/pytorch/pytorch.git
         cd pytorch
-        git checkout ${{ matrix.pytorch-git-tag }}
-        git clean -fdx
-        git submodule update --init --recursive
 
     - name: Build Pytorch
       if: matrix.os != 'windows-2019'
