@@ -20,23 +20,18 @@
 
 #include "itkTorchPixelHelper.h"
 
-namespace itk
-{
+namespace itk {
 
-template< typename TPixelType, typename Void >
+template <typename TPixelType, typename Void>
 constexpr unsigned int
-TorchPixelHelper< TPixelType, Void >
-::NumberOfTopLevelComponents;
+    TorchPixelHelper<TPixelType, Void>::NumberOfTopLevelComponents;
 
-template< typename TPixelType, typename Void >
+template <typename TPixelType, typename Void>
 constexpr unsigned int
-TorchPixelHelper< TPixelType, Void >
-::NumberOfDeepComponents;
+    TorchPixelHelper<TPixelType, Void>::NumberOfDeepComponents;
 
-template< typename TPixelType, typename Void >
-constexpr unsigned int
-TorchPixelHelper< TPixelType, Void >
-::PixelDimension;
+template <typename TPixelType, typename Void>
+constexpr unsigned int TorchPixelHelper<TPixelType, Void>::PixelDimension;
 
 } // end namespace itk
 

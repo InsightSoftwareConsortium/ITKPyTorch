@@ -18,12 +18,11 @@
 #ifndef itkTorchImageToImageFilter_h
 #define itkTorchImageToImageFilter_h
 
-#include <type_traits>
-#include "itkTorchImage.h"
 #include "itkImageToImageFilter.h"
+#include "itkTorchImage.h"
+#include <type_traits>
 
-namespace itk
-{
+namespace itk {
 /** \class TorchImageToImageFilter
  *
  * \brief class to abstract the behaviour of the Torch filters.
@@ -37,23 +36,28 @@ namespace itk
  * \ingroup PyTorch
  */
 
-template < typename TInputImage,
-           typename TOutputImage,
-           typename TParentImageFilter = ImageToImageFilter< TInputImage, TOutputImage > >
-class ITK_TEMPLATE_EXPORT TorchImageToImageFilter : public TParentImageFilter
-{
+template <typename TInputImage, typename TOutputImage,
+          typename TParentImageFilter =
+              ImageToImageFilter<TInputImage, TOutputImage>>
+class ITK_TEMPLATE_EXPORT TorchImageToImageFilter : public TParentImageFilter {
 public:
   static constexpr bool ConceptCheck =
-    std::is_same< TInputImage, TorchImage< typename TInputImage::PixelType, TInputImage::ImageDimension > >::value ||
-    std::is_same< TOutputImage, TorchImage< typename TOutputImage::PixelType, TOutputImage::ImageDimension > >::value;
-  static_assert( ConceptCheck, "itk::TorchImageToImageFilter: at least one of the first two template parameters must be an itk::TorchImage." );
-  ITK_DISALLOW_COPY_AND_ASSIGN( TorchImageToImageFilter );
+      std::is_same<TInputImage,
+                   TorchImage<typename TInputImage::PixelType,
+                              TInputImage::ImageDimension>>::value ||
+      std::is_same<TOutputImage,
+                   TorchImage<typename TOutputImage::PixelType,
+                              TOutputImage::ImageDimension>>::value;
+  static_assert(ConceptCheck,
+                "itk::TorchImageToImageFilter: at least one of the first two "
+                "template parameters must be an itk::TorchImage.");
+  ITK_DISALLOW_COPY_AND_ASSIGN(TorchImageToImageFilter);
 
   /** Standard class type aliases. */
   using Self = TorchImageToImageFilter;
   using Superclass = TParentImageFilter;
-  using Pointer = SmartPointer< Self >;
-  using ConstPointer = SmartPointer< const Self >;
+  using Pointer = SmartPointer<Self>;
+  using ConstPointer = SmartPointer<const Self>;
 
   /** Some convenient type aliases. */
   using InputImageType = TInputImage;
@@ -68,20 +72,21 @@ public:
   using OutputImagePixelType = typename Self::OutputImageType::PixelType;
 
   /** ImageDimension constants */
-  static constexpr unsigned int InputImageDimension = Self::TInputImage::ImageDimension;
-  static constexpr unsigned int OutputImageDimension = Self::TOutputImage::ImageDimension;
+  static constexpr unsigned int InputImageDimension =
+      Self::TInputImage::ImageDimension;
+  static constexpr unsigned int OutputImageDimension =
+      Self::TOutputImage::ImageDimension;
 
   /** Method for creation through the object factory. */
-  itkNewMacro( Self );
+  itkNewMacro(Self);
 
   /** Run-time type information (and related methods). */
-  itkTypeMacro( TorchImageToImageFilter, TParentImageFilter );
+  itkTypeMacro(TorchImageToImageFilter, TParentImageFilter);
 
 protected:
   TorchImageToImageFilter() = default;
   ~TorchImageToImageFilter() override = default;
 };
-
 
 } // end namespace itk
 

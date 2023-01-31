@@ -25,12 +25,12 @@
 // Setup symbol export
 #define PyTorch_HIDDEN ITK_ABI_HIDDEN
 
-#if !defined( ITKSTATIC )
+#if !defined(ITKSTATIC)
 #ifdef PyTorch_EXPORTS
 #define PyTorch_EXPORT ITK_ABI_EXPORT
 #else
 #define PyTorch_EXPORT ITK_ABI_IMPORT
-#endif  /* PyTorch_EXPORTS */
+#endif /* PyTorch_EXPORTS */
 #else
 /* PyTorch is built as a static lib */
 #if __GNUC__ >= 4

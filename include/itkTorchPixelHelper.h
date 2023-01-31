@@ -20,8 +20,7 @@
 
 #include <torch/torch.h>
 
-namespace itk
-{
+namespace itk {
 /** \class TorchPixelHelper
  *  \brief Converts between ITK vector pixel types and torch scalar pixel types.
  *
@@ -42,9 +41,7 @@ namespace itk
  *
  * \ingroup PyTorch
  */
-template< typename TPixelType, typename = void >
-class TorchPixelHelper
-{
+template <typename TPixelType, typename = void> class TorchPixelHelper {
 public:
   using Self = TorchPixelHelper;
   using PixelType = TPixelType;
@@ -73,9 +70,10 @@ public:
  *
  * \ingroup PyTorch
  */
-template< typename TPixelType >
-class TorchPixelHelper< TPixelType, typename std::enable_if< std::is_arithmetic< TPixelType >::value >::type >
-{
+template <typename TPixelType>
+class TorchPixelHelper<
+    TPixelType,
+    typename std::enable_if<std::is_arithmetic<TPixelType>::value>::type> {
 public:
   using Self = TorchPixelHelper;
   using PixelType = TPixelType;
@@ -84,32 +82,30 @@ public:
   static constexpr unsigned int NumberOfDeepComponents = 1;
   static constexpr unsigned int PixelDimension = 0; // a zero-dimensional array
 
-  TorchPixelHelper &operator=( const PixelType &value )
-    {
-    m_Tensor.index( m_TorchIndex ).fill_( value );
+  TorchPixelHelper &operator=(const PixelType &value) {
+    m_Tensor.index(m_TorchIndex).fill_(value);
     return *this;
-    }
+  }
 
-  operator PixelType() const
-    {
-    return m_Tensor.index( m_TorchIndex ).item< DeepScalarType >();
-    }
+  operator PixelType() const {
+    return m_Tensor.index(m_TorchIndex).item<DeepScalarType>();
+  }
 
 protected:
-  template< typename NTPixelType, typename Void > friend class TorchPixelHelper;
-  template< typename NTPixelType, unsigned int NVImageDimension > friend class TorchImage;
+  template <typename NTPixelType, typename Void> friend class TorchPixelHelper;
+  template <typename NTPixelType, unsigned int NVImageDimension>
+  friend class TorchImage;
 
-  static void AppendSizes( std::vector< int64_t > & itkNotUsed( size ) )
-    {
+  static void AppendSizes(std::vector<int64_t> &itkNotUsed(size)) {
     // Nothing to append
-    }
+  }
 
-  TorchPixelHelper( torch::Tensor Tensor, std::vector< at::indexing::TensorIndex > &TorchIndex ) : m_Tensor( Tensor ), m_TorchIndex( TorchIndex )
-    {
-    }
+  TorchPixelHelper(torch::Tensor Tensor,
+                   std::vector<at::indexing::TensorIndex> &TorchIndex)
+      : m_Tensor(Tensor), m_TorchIndex(TorchIndex) {}
 
   torch::Tensor m_Tensor;
-  std::vector< at::indexing::TensorIndex > m_TorchIndex;
+  std::vector<at::indexing::TensorIndex> m_TorchIndex;
 };
 
 /** \class TorchPixelHelper
@@ -132,104 +128,103 @@ protected:
  *
  * \ingroup PyTorch
  */
-template< typename TPixelType >
-class TorchPixelHelper< TPixelType, typename std::enable_if< !std::is_arithmetic< TPixelType >::value >::type >
-{
+template <typename TPixelType>
+class TorchPixelHelper<
+    TPixelType,
+    typename std::enable_if<!std::is_arithmetic<TPixelType>::value>::type> {
 public:
 #ifdef ITK_USE_CONCEPT_CHECKING
-  itkConceptMacro( HasValueTypeCheck, ( Concept::HasValueType< TPixelType > ) );
+  itkConceptMacro(HasValueTypeCheck, (Concept::HasValueType<TPixelType>));
 #endif
   using Self = TorchPixelHelper;
   using PixelType = TPixelType;
   using ValueType = typename PixelType::ValueType;
-  using NextTorchPixelHelper = TorchPixelHelper< ValueType >;
+  using NextTorchPixelHelper = TorchPixelHelper<ValueType>;
   using DeepScalarType = typename NextTorchPixelHelper::DeepScalarType;
-  static constexpr unsigned int NumberOfTopLevelComponents = PixelType::Dimension;
-  static constexpr unsigned int NumberOfDeepComponents = NumberOfTopLevelComponents * NextTorchPixelHelper::NumberOfDeepComponents;
-  static constexpr unsigned int PixelDimension = 1 + NextTorchPixelHelper::PixelDimension;
+  static constexpr unsigned int NumberOfTopLevelComponents =
+      PixelType::Dimension;
+  static constexpr unsigned int NumberOfDeepComponents =
+      NumberOfTopLevelComponents * NextTorchPixelHelper::NumberOfDeepComponents;
+  static constexpr unsigned int PixelDimension =
+      1 + NextTorchPixelHelper::PixelDimension;
 
-  TorchPixelHelper &operator=( const PixelType &value )
-    {
-    for( unsigned int i = 0; i < NumberOfTopLevelComponents; ++i )
-      {
-      m_TorchIndex.push_back( static_cast< int64_t >( i ) );
-      NextTorchPixelHelper { m_Tensor, m_TorchIndex } = value[i];
+  TorchPixelHelper &operator=(const PixelType &value) {
+    for (unsigned int i = 0; i < NumberOfTopLevelComponents; ++i) {
+      m_TorchIndex.push_back(static_cast<int64_t>(i));
+      NextTorchPixelHelper{m_Tensor, m_TorchIndex} = value[i];
       m_TorchIndex.pop_back();
-      }
+    }
     return *this;
-    }
+  }
 
-  operator PixelType() const
-    {
+  operator PixelType() const {
     PixelType response;
-    for( unsigned int i = 0; i < NumberOfTopLevelComponents; ++i )
-      {
-      m_TorchIndex.push_back( static_cast< int64_t >( i ) );
-      response[i] = NextTorchPixelHelper { m_Tensor, m_TorchIndex };
+    for (unsigned int i = 0; i < NumberOfTopLevelComponents; ++i) {
+      m_TorchIndex.push_back(static_cast<int64_t>(i));
+      response[i] = NextTorchPixelHelper{m_Tensor, m_TorchIndex};
       m_TorchIndex.pop_back();
-      }
-    return response;
     }
+    return response;
+  }
 
 protected:
-  template< typename NTPixelType, typename Void > friend class TorchPixelHelper;
-  template< typename NTPixelType, unsigned int NVImageDimension > friend class TorchImage;
+  template <typename NTPixelType, typename Void> friend class TorchPixelHelper;
+  template <typename NTPixelType, unsigned int NVImageDimension>
+  friend class TorchImage;
 
-  static void AppendSizes( std::vector< int64_t > &size )
-    {
-    size.push_back( PixelType::Dimension );
-    NextTorchPixelHelper::AppendSizes( size );
-    }
+  static void AppendSizes(std::vector<int64_t> &size) {
+    size.push_back(PixelType::Dimension);
+    NextTorchPixelHelper::AppendSizes(size);
+  }
 
-  TorchPixelHelper( torch::Tensor Tensor, std::vector< at::indexing::TensorIndex > &TorchIndex ) : m_Tensor( Tensor ), m_TorchIndex( TorchIndex )
-    {
-    }
+  TorchPixelHelper(torch::Tensor Tensor,
+                   std::vector<at::indexing::TensorIndex> &TorchIndex)
+      : m_Tensor(Tensor), m_TorchIndex(TorchIndex) {}
 
   torch::Tensor m_Tensor;
-  mutable std::vector< at::indexing::TensorIndex > m_TorchIndex;
+  mutable std::vector<at::indexing::TensorIndex> m_TorchIndex;
 };
 
-template< typename TPixelType >
-typename std::enable_if< std::is_arithmetic< TPixelType >::value && sizeof( TPixelType ) <= 1, std::string >::type
-FormatPixel( TPixelType pixel )
-{
+template <typename TPixelType>
+typename std::enable_if<std::is_arithmetic<TPixelType>::value &&
+                            sizeof(TPixelType) <= 1,
+                        std::string>::type
+FormatPixel(TPixelType pixel) {
   std::ostringstream os;
-  os << static_cast< int >( pixel );
+  os << static_cast<int>(pixel);
   return os.str();
 }
 
-template< typename TPixelType >
-typename std::enable_if< std::is_arithmetic< TPixelType >::value && sizeof( TPixelType ) >= 2, std::string >::type
-FormatPixel( TPixelType pixel )
-{
+template <typename TPixelType>
+typename std::enable_if<std::is_arithmetic<TPixelType>::value &&
+                            sizeof(TPixelType) >= 2,
+                        std::string>::type
+FormatPixel(TPixelType pixel) {
   std::ostringstream os;
   os << pixel;
   return os.str();
 }
 
-template< typename TPixelType >
-typename std::enable_if< !std::is_arithmetic< TPixelType >::value, std::string >::type
-FormatPixel( TPixelType const &pixel )
-{
+template <typename TPixelType>
+typename std::enable_if<!std::is_arithmetic<TPixelType>::value,
+                        std::string>::type
+FormatPixel(TPixelType const &pixel) {
   std::ostringstream os;
   os << "[";
-  if( TPixelType::Dimension > 0 )
-    {
-    os << FormatPixel( pixel[0] );
-    }
-  for( int i = 1; i < TPixelType::Dimension; ++i )
-    {
-    os << ", " << FormatPixel( pixel[i] );
-    }
+  if (TPixelType::Dimension > 0) {
+    os << FormatPixel(pixel[0]);
+  }
+  for (int i = 1; i < TPixelType::Dimension; ++i) {
+    os << ", " << FormatPixel(pixel[i]);
+  }
   os << "]";
   return os.str();
 }
 
-
 } // end namespace itk
 
 #ifndef ITK_MANUAL_INSTANTIATION
-#  include "itkTorchPixelHelper.hxx"
+#include "itkTorchPixelHelper.hxx"
 #endif
 
 #endif
